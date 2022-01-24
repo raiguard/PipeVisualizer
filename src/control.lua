@@ -1,3 +1,5 @@
+-- TODO:
+-- Better way to update while moving
 local event = require("__flib__.event")
 
 local visualizer = require("scripts.visualizer")
@@ -30,7 +32,7 @@ event.register("pv-toggle", function(e)
   local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
   if player_table.flags.toggled then
-    visualizer.destroy(player, player_table)
+    visualizer.destroy(player_table)
     return
   end
   visualizer.fluids(player, player_table)
