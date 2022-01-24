@@ -38,7 +38,7 @@ event.register("pv-toggle", function(e)
   end
   player_table.flags.toggled = true
   local player = game.get_player(e.player_index)
-  local position = player.position
+  local player_position = player.position
   local surface = player.surface
 
   -- Calculate the area to search from resolution
@@ -50,23 +50,28 @@ event.register("pv-toggle", function(e)
     width = resolution.width / pixels_per_tile,
     height = resolution.height / pixels_per_tile,
   }
-  local tile_area = area.from_dimensions(tile_resolution, position)
+  local tile_area = area.from_dimensions(tile_resolution, player_position)
 
   local entities = player.surface.find_entities_filtered({
     type = constants.search_types,
     area = tile_area,
   })
 
-  -- rendering.draw_rectangle({
-  --   left_top = tile_area.left_top,
-  --   right_bottom = tile_area.right_bottom,
-  --   filled = true,
-  --   color = { g = 0.2, a = 0.2 },
-  --   surface = surface,
-  --   players = { 1 },
-  -- })
+  -- local entities = { player.selected }
 
   local render_objects = {}
+
+  table.insert(
+    render_objects,
+    rendering.draw_rectangle({
+      left_top = tile_area.left_top,
+      right_bottom = tile_area.right_bottom,
+      filled = true,
+      color = { a = 0.5 },
+      surface = surface,
+      players = { 1 },
+    })
+  )
 
   for _, entity in pairs(entities) do
     --- @type Fluid
@@ -76,17 +81,29 @@ event.register("pv-toggle", function(e)
       -- TODO: Ensure a consistent brightness and saturation
       color = game.fluid_prototypes[fluid.name].base_color
     end
-    table.insert(
-      render_objects,
-      rendering.draw_circle({
-        color = color,
-        radius = 0.3,
-        filled = true,
-        surface = surface,
-        target = entity.position,
-        players = { 1 },
-      })
-    )
+
+    local neighbours = entity.neighbours
+    for _, fluidbox_neighbours in pairs(neighbours) do
+      for _, neighbour in pairs(fluidbox_neighbours) do
+        local neighbour_position = neighbour.position
+        if neighbour_position.x > (entity.position.x + 0.99) or neighbour_position.y > (entity.position.y + 0.99) then
+          local is_underground_connection = entity.type == "pipe-to-ground" and neighbour.type == "pipe-to-ground"
+          table.insert(
+            render_objects,
+            rendering.draw_line({
+              color = color,
+              width = 5,
+              gap_length = is_underground_connection and 0.5 or 0,
+              dash_length = is_underground_connection and 0.3 or 0,
+              from = entity,
+              to = neighbour,
+              surface = neighbour.surface,
+              players = { 1 },
+            })
+          )
+        end
+      end
+    end
 
     player_table.render_objects = render_objects
   end
