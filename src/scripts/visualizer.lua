@@ -91,9 +91,12 @@ function visualizer.fluids(player, player_table)
           if not constants.search_types_lookup[neighbour.type] then
             table.insert(
               render_objects,
-              rendering.draw_circle({
+              rendering.draw_rectangle({
+                left_top = neighbour,
+                left_top_offset = { -0.2, -0.2 },
+                right_bottom = neighbour,
+                right_bottom_offset = { 0.2, 0.2 },
                 color = color,
-                radius = 0.2,
                 filled = true,
                 target = neighbour,
                 surface = surface,
