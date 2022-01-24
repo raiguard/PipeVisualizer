@@ -1,6 +1,8 @@
 local area = require("__flib__.area")
 local event = require("__flib__.event")
 
+local vivid = require("lib.vivid")
+
 local constants = require("constants")
 
 --- @param player_index number
@@ -78,8 +80,11 @@ event.register("pv-toggle", function(e)
     local color = { r = 0.3, g = 0.3, b = 0.3 }
     local fluid = entity.fluidbox[1]
     if fluid then
-      -- TODO: Ensure a consistent brightness and saturation
-      color = game.fluid_prototypes[fluid.name].base_color
+      local base_color = game.fluid_prototypes[fluid.name].base_color
+      local h, s, v, a = vivid.RGBtoHSV(base_color)
+      v = 1
+      local r, g, b, a = vivid.HSVtoRGB(h, s, v, a)
+      color = { r = r, g = g, b = b, a = a }
     end
 
     local neighbours = entity.neighbours
@@ -87,7 +92,9 @@ event.register("pv-toggle", function(e)
       for _, neighbour in pairs(fluidbox_neighbours) do
         local neighbour_position = neighbour.position
         if neighbour_position.x > (entity.position.x + 0.99) or neighbour_position.y > (entity.position.y + 0.99) then
-          local is_underground_connection = entity.type == "pipe-to-ground" and neighbour.type == "pipe-to-ground"
+          local is_underground_connection = entity.type == "pipe-to-ground"
+            and neighbour.type == "pipe-to-ground"
+            and (entity.direction == defines.direction.north or entity.direction == defines.direction.west)
           table.insert(
             render_objects,
             rendering.draw_line({
@@ -104,6 +111,18 @@ event.register("pv-toggle", function(e)
         end
       end
     end
+
+    table.insert(
+      render_objects,
+      rendering.draw_circle({
+        color = color,
+        radius = 0.2,
+        filled = true,
+        target = entity,
+        surface = surface,
+        players = { 1 },
+      })
+    )
 
     player_table.render_objects = render_objects
   end
