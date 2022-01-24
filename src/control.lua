@@ -44,8 +44,15 @@ event.register("pv-toggle", function(e)
   })
 
   for _, entity in pairs(entities) do
+    --- @type Fluid
+    local color = { r = 0.3, g = 0.3, b = 0.3 }
+    local fluid = entity.fluidbox[1]
+    if fluid then
+      -- TODO: Ensure a consistent brightness and saturation
+      color = game.fluid_prototypes[fluid.name].base_color
+    end
     rendering.draw_circle({
-      color = { r = 1 },
+      color = color,
       radius = 0.3,
       filled = true,
       surface = surface,
