@@ -6,7 +6,19 @@ local constants = require("constants")
 
 local visualizer = {}
 
+--- @param player_table PlayerTable
+function visualizer.destroy(player_table)
+  player_table.flags.toggled = false
+  for _, id in pairs(player_table.render_objects) do
+    rendering.destroy(id)
+  end
+  player_table.render_objects = {}
+end
+
+--- @param player LuaPlayer
+--- @param player_table PlayerTable
 function visualizer.fluids(player, player_table)
+  player_table.flags.toggled = true
   local player_position = player.position
   local surface = player.surface
 
@@ -38,7 +50,7 @@ function visualizer.fluids(player, player_table)
       filled = true,
       color = { a = 0.5 },
       surface = surface,
-      players = { 1 },
+      players = { player.index },
     })
   )
 
@@ -72,9 +84,23 @@ function visualizer.fluids(player, player_table)
               from = entity,
               to = neighbour,
               surface = neighbour.surface,
-              players = { 1 },
+              players = { player.index },
             })
           )
+
+          if not constants.search_types_lookup[neighbour.type] then
+            table.insert(
+              render_objects,
+              rendering.draw_circle({
+                color = color,
+                radius = 0.2,
+                filled = true,
+                target = neighbour,
+                surface = surface,
+                players = { player.index },
+              })
+            )
+          end
         end
       end
     end
@@ -87,12 +113,12 @@ function visualizer.fluids(player, player_table)
         filled = true,
         target = entity,
         surface = surface,
-        players = { 1 },
+        players = { player.index },
       })
     )
-
-    player_table.render_objects = render_objects
   end
+
+  player_table.render_objects = render_objects
 end
 
 return visualizer

@@ -7,9 +7,10 @@ local function init_player(player_index)
   --- @class PlayerTable
   global.players[player_index] = {
     flags = {
-      render_objects = {},
       toggled = false,
     },
+    last_position = { x = 0, y = 0 },
+    render_objects = {},
   }
 end
 
@@ -26,15 +27,29 @@ event.on_player_created(function(e)
 end)
 
 event.register("pv-toggle", function(e)
+  local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
   if player_table.flags.toggled then
-    player_table.flags.toggled = false
-    for _, id in pairs(player_table.render_objects) do
-      rendering.destroy(id)
-    end
-    player_table.render_objects = {}
+    visualizer.destroy(player, player_table)
     return
   end
-  player_table.flags.toggled = true
-  visualizer.fluids(game.get_player(e.player_index), player_table)
+  visualizer.fluids(player, player_table)
+end)
+
+event.on_player_changed_position(function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = global.players[e.player_index]
+  if player_table.flags.toggled then
+    local last_position = player_table.last_position
+    local position = player.position
+    local floored_position = {
+      x = math.floor(position.x),
+      y = math.floor(position.y),
+    }
+    if floored_position.x ~= last_position.x and floored_position.y ~= last_position.y then
+      last_position = floored_position
+      visualizer.destroy(player_table)
+      visualizer.fluids(player, player_table)
+    end
+  end
 end)

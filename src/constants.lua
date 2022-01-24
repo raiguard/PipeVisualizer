@@ -1,3 +1,5 @@
+local table = require("__flib__.table")
+
 local constants = {}
 
 constants.search_types = {
@@ -8,5 +10,7 @@ constants.search_types = {
   "pump",
   "storage-tank",
 }
+
+constants.search_types_lookup = table.invert(constants.search_types)
 
 return constants
