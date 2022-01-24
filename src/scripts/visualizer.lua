@@ -32,6 +32,7 @@ function visualizer.fluids(player, player_table)
     height = resolution.height / pixels_per_tile,
   }
   local tile_area = area.from_dimensions(tile_resolution, player_position)
+  area.expand(tile_area, 15)
 
   local entities = player.surface.find_entities_filtered({
     type = constants.search_types,
@@ -61,7 +62,7 @@ function visualizer.fluids(player, player_table)
     if fluid then
       local base_color = game.fluid_prototypes[fluid.name].base_color
       local h, s, v, a = vivid.RGBtoHSV(base_color)
-      v = 1
+      v = math.max(v, 0.8)
       local r, g, b, a = vivid.HSVtoRGB(h, s, v, a)
       color = { r = r, g = g, b = b, a = a }
     end
@@ -70,40 +71,52 @@ function visualizer.fluids(player, player_table)
     for _, fluidbox_neighbours in pairs(neighbours) do
       for _, neighbour in pairs(fluidbox_neighbours) do
         local neighbour_position = neighbour.position
-        if neighbour_position.x > (entity.position.x + 0.99) or neighbour_position.y > (entity.position.y + 0.99) then
+        local is_pipe_entity = constants.search_types_lookup[neighbour.type]
+        if
+          not is_pipe_entity
+          or (neighbour_position.x > (entity.position.x + 0.99) or neighbour_position.y > (entity.position.y + 0.99))
+        then
           local is_underground_connection = entity.type == "pipe-to-ground"
             and neighbour.type == "pipe-to-ground"
             and (entity.direction == defines.direction.north or entity.direction == defines.direction.west)
+          local offset = { 0, 0 }
+          if is_underground_connection then
+            if entity.direction == defines.direction.north then
+              offset = { 0, -0.25 }
+            else
+              offset = { -0.25, 0 }
+            end
+          end
           table.insert(
             render_objects,
             rendering.draw_line({
               color = color,
               width = 5,
               gap_length = is_underground_connection and 0.5 or 0,
-              dash_length = is_underground_connection and 0.3 or 0,
+              dash_length = is_underground_connection and 0.5 or 0,
               from = entity,
+              from_offset = offset,
               to = neighbour,
               surface = neighbour.surface,
               players = { player.index },
             })
           )
-
-          if not constants.search_types_lookup[neighbour.type] then
-            table.insert(
-              render_objects,
-              rendering.draw_rectangle({
-                left_top = neighbour,
-                left_top_offset = { -0.2, -0.2 },
-                right_bottom = neighbour,
-                right_bottom_offset = { 0.2, 0.2 },
-                color = color,
-                filled = true,
-                target = neighbour,
-                surface = surface,
-                players = { player.index },
-              })
-            )
-          end
+        end
+        if not is_pipe_entity then
+          table.insert(
+            render_objects,
+            rendering.draw_rectangle({
+              left_top = neighbour,
+              left_top_offset = { -0.2, -0.2 },
+              right_bottom = neighbour,
+              right_bottom_offset = { 0.2, 0.2 },
+              color = color,
+              filled = true,
+              target = neighbour,
+              surface = surface,
+              players = { player.index },
+            })
+          )
         end
       end
     end
