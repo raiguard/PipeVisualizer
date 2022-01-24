@@ -1,0 +1,11 @@
+{
+  "name": "PipeVisualizer",
+  "version": "1.0.0",
+  "title": "Pipe Visualizer",
+  "description": "Visualize the layout and fluids in pipe networks.",
+  "author": "raiguard",
+  "contact": "Discord: raiguard#7402",
+  "homepage": "https://github.com/raiguard/Factorio-PipeVisualizer",
+  "factorio_version": "1.1",
+  "dependencies": [ "base >= 1.1.52" ]
+}
