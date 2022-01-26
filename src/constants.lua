@@ -2,6 +2,10 @@ local table = require("__flib__.table")
 
 local constants = {}
 
+-- In the source code, 200 is defined as the maximum viewable distance, but in reality it's around 220
+-- Map editor is 3x that, but we will ignore that for now
+constants.max_viewable_distance = 220
+
 constants.search_types = {
   "infinity-pipe",
   "offshore-pump",

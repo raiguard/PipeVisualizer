@@ -6,16 +6,6 @@ local constants = require("constants")
 
 local visualizer = {}
 
---- @param player_table PlayerTable
-function visualizer.destroy(player_table)
-  player_table.flags.toggled = false
-  rendering.destroy(player_table.render_objects.rectangle)
-  for _, id in pairs(player_table.render_objects.pieces) do
-    rendering.destroy(id)
-  end
-  player_table.render_objects = {}
-end
-
 --- @param player LuaPlayer
 --- @param player_table PlayerTable
 function visualizer.create(player, player_table)
@@ -23,17 +13,12 @@ function visualizer.create(player, player_table)
   local player_position = player.position
   local surface = player.surface
 
-  -- Calculate the area to search from resolution
-  -- FIXME: This assumes a 16x9 or 9x16 proportion
-  local resolution = player.display_resolution
-  -- 12 is the pixels per tile at max zoom
-  local pixels_per_tile = 12
-  local tile_resolution = {
-    width = resolution.width / pixels_per_tile,
-    height = resolution.height / pixels_per_tile,
-  }
-  local tile_area = area.from_dimensions(tile_resolution, player_position)
-  area.expand(tile_area, 2)
+  local tile_area = area.from_dimensions(
+    { height = constants.max_viewable_distance, width = constants.max_viewable_distance },
+    player_position
+  )
+  -- Give a good margin of error
+  area.expand(tile_area, 5)
 
   local entities = player.surface.find_entities_filtered({
     type = constants.search_types,
@@ -139,6 +124,16 @@ function visualizer.create(player, player_table)
   end
 
   player_table.render_objects = render_objects
+end
+
+--- @param player_table PlayerTable
+function visualizer.destroy(player_table)
+  player_table.flags.toggled = false
+  rendering.destroy(player_table.render_objects.rectangle)
+  for _, id in pairs(player_table.render_objects.pieces) do
+    rendering.destroy(id)
+  end
+  player_table.render_objects = {}
 end
 
 return visualizer
