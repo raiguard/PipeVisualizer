@@ -106,7 +106,8 @@ function visualizer.update(player, player_table)
   player_table.last_position = player_position
 
   for _, tile_area in pairs(areas) do
-    for _, entity in pairs(player.surface.find_entities_filtered({ type = constants.search_types, area = tile_area })) do
+    local entities = player.surface.find_entities_filtered({ type = constants.search_types, area = tile_area })
+    for _, entity in pairs(entities) do
       local entity_objects = player_table.entity_objects[entity.unit_number]
       if entity_objects then
         for _, id in pairs(entity_objects) do
@@ -130,17 +131,22 @@ function visualizer.update(player, player_table)
         for _, neighbour in pairs(fluidbox_neighbours) do
           local neighbour_position = neighbour.position
           local is_pipe_entity = constants.search_types_lookup[neighbour.type]
+          local is_underground_connection = entity.type == "pipe-to-ground"
+            and neighbour.type == "pipe-to-ground"
+            and entity.direction == direction.opposite(neighbour.direction)
+            and entity.direction
+              == direction.opposite(direction.from_positions(entity.position, neighbour.position, true))
+          local is_southeast = neighbour_position.x > (entity.position.x + 0.99)
+            or neighbour_position.y > (entity.position.y + 0.99)
+
           if
-            not is_pipe_entity
-            or (neighbour_position.x > (entity.position.x + 0.99) or neighbour_position.y > (entity.position.y + 0.99))
-            or not area.contains_position(overlay_area, neighbour_position)
+            is_underground_connection
+            and not area.contains_position(overlay_area, neighbour_position)
+            and not is_southeast
           then
+            table.insert(entities, neighbour)
+          elseif is_southeast or not is_pipe_entity then
             local offset = { 0, 0 }
-            local is_underground_connection = entity.type == "pipe-to-ground"
-              and neighbour.type == "pipe-to-ground"
-              and entity.direction == direction.opposite(neighbour.direction)
-              and entity.direction
-                == direction.opposite(direction.from_positions(entity.position, neighbour.position, true))
             if is_underground_connection then
               if entity.direction == defines.direction.north or entity.direction == defines.direction.south then
                 offset = { 0, -0.25 }
