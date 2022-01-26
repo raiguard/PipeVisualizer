@@ -27,30 +27,94 @@ end
 --- @param player LuaPlayer
 --- @param player_table PlayerTable
 function visualizer.update(player, player_table)
-  local player_position = player.position
-  local surface = player.surface
+  local player_surface = player.surface
+  local player_position = {
+    x = math.floor(player.position.x),
+    y = math.floor(player.position.y),
+  }
 
-  local tile_area = area.from_dimensions(
-    { height = constants.max_viewable_distance, width = constants.max_viewable_distance },
+  local overlay_area = area.from_dimensions(
+    { height = constants.max_viewable_radius * 2, width = constants.max_viewable_radius * 2 },
     player_position
   )
-  -- Give a good margin of error
-  area.expand(tile_area, 5)
 
   -- Update overlay
-  rendering.set_left_top(player_table.rectangle, tile_area.left_top)
-  rendering.set_right_bottom(player_table.rectangle, tile_area.right_bottom)
+  rendering.set_left_top(player_table.rectangle, overlay_area.left_top)
+  rendering.set_right_bottom(player_table.rectangle, overlay_area.right_bottom)
 
-  local entities = player.surface.find_entities_filtered({
-    type = constants.search_types,
-    area = tile_area,
-  })
+  local areas = {}
+  if player_table.last_position then
+    local last_position = player_table.last_position
+    --- @type Position
+    local delta = {
+      x = player_position.x - last_position.x,
+      y = player_position.y - last_position.y,
+    }
 
-  for _, entity in pairs(entities) do
-    if not player_table.entity_objects[entity.unit_number] then
+    if delta.x < 0 then
+      table.insert(areas, {
+        left_top = {
+          x = player_position.x - constants.max_viewable_radius,
+          y = player_position.y - constants.max_viewable_radius,
+        },
+        right_bottom = {
+          x = last_position.x - constants.max_viewable_radius,
+          y = player_position.y + constants.max_viewable_radius,
+        },
+      })
+    elseif delta.x > 0 then
+      table.insert(areas, {
+        left_top = {
+          x = last_position.x + constants.max_viewable_radius,
+          y = player_position.y - constants.max_viewable_radius,
+        },
+        right_bottom = {
+          x = player_position.x + constants.max_viewable_radius,
+          y = player_position.y + constants.max_viewable_radius,
+        },
+      })
+    end
+
+    if delta.y < 0 then
+      table.insert(areas, {
+        left_top = {
+          x = player_position.x - constants.max_viewable_radius,
+          y = player_position.y - constants.max_viewable_radius,
+        },
+        right_bottom = {
+          x = player_position.x + constants.max_viewable_radius,
+          y = last_position.y - constants.max_viewable_radius,
+        },
+      })
+    elseif delta.y > 0 then
+      table.insert(areas, {
+        left_top = {
+          x = player_position.x - constants.max_viewable_radius,
+          y = last_position.y + constants.max_viewable_radius,
+        },
+        right_bottom = {
+          x = player_position.x + constants.max_viewable_radius,
+          y = player_position.y + constants.max_viewable_radius,
+        },
+      })
+    end
+  else
+    table.insert(areas, overlay_area)
+  end
+
+  player_table.last_position = player_position
+
+  for _, tile_area in pairs(areas) do
+    for _, entity in pairs(player.surface.find_entities_filtered({ type = constants.search_types, area = tile_area })) do
+      local entity_objects = player_table.entity_objects[entity.unit_number]
+      if entity_objects then
+        for _, id in pairs(entity_objects) do
+          rendering.destroy(id)
+        end
+      end
       local entity_objects = {}
-      --- @type Fluid
       local color = { r = 0.3, g = 0.3, b = 0.3 }
+      --- @type Fluid
       local fluid = entity.fluidbox[1]
       if fluid then
         local base_color = game.fluid_prototypes[fluid.name].base_color
@@ -111,7 +175,7 @@ function visualizer.update(player, player_table)
                 color = color,
                 filled = true,
                 target = neighbour,
-                surface = surface,
+                surface = player_surface,
                 players = { player.index },
               })
             )
@@ -126,7 +190,7 @@ function visualizer.update(player, player_table)
           radius = 0.2,
           filled = true,
           target = entity,
-          surface = surface,
+          surface = player_surface,
           players = { player.index },
         })
       )
@@ -146,6 +210,7 @@ function visualizer.destroy(player_table)
     end
   end
   player_table.entity_objects = {}
+  player_table.last_position = nil
 end
 
 return visualizer

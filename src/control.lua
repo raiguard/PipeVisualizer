@@ -10,7 +10,8 @@ local function init_player(player_index)
   global.players[player_index] = {
     enabled = false,
     entity_objects = {},
-    last_position = { x = 0, y = 0 },
+    --- @type Position?
+    last_position = nil,
     rectangle = nil,
   }
 end
@@ -48,7 +49,6 @@ event.on_player_changed_position(function(e)
       y = math.floor(position.y),
     }
     if floored_position.x ~= last_position.x or floored_position.y ~= last_position.y then
-      last_position = floored_position
       visualizer.update(player, player_table)
     end
   end
