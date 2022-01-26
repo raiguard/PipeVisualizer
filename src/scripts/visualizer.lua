@@ -9,7 +9,8 @@ local visualizer = {}
 --- @param player_table PlayerTable
 function visualizer.destroy(player_table)
   player_table.flags.toggled = false
-  for _, id in pairs(player_table.render_objects) do
+  rendering.destroy(player_table.render_objects.rectangle)
+  for _, id in pairs(player_table.render_objects.pieces) do
     rendering.destroy(id)
   end
   player_table.render_objects = {}
@@ -17,7 +18,7 @@ end
 
 --- @param player LuaPlayer
 --- @param player_table PlayerTable
-function visualizer.fluids(player, player_table)
+function visualizer.create(player, player_table)
   player_table.flags.toggled = true
   local player_position = player.position
   local surface = player.surface
@@ -32,7 +33,7 @@ function visualizer.fluids(player, player_table)
     height = resolution.height / pixels_per_tile,
   }
   local tile_area = area.from_dimensions(tile_resolution, player_position)
-  area.expand(tile_area, 15)
+  area.expand(tile_area, 2)
 
   local entities = player.surface.find_entities_filtered({
     type = constants.search_types,
@@ -41,19 +42,17 @@ function visualizer.fluids(player, player_table)
 
   -- local entities = { player.selected }
 
-  local render_objects = {}
-
-  table.insert(
-    render_objects,
-    rendering.draw_rectangle({
+  local render_objects = {
+    pieces = {},
+    rectangle = rendering.draw_rectangle({
       left_top = tile_area.left_top,
       right_bottom = tile_area.right_bottom,
       filled = true,
-      color = { a = 0.5 },
+      color = { a = 0.6 },
       surface = surface,
       players = { player.index },
-    })
-  )
+    }),
+  }
 
   for _, entity in pairs(entities) do
     --- @type Fluid
@@ -75,10 +74,15 @@ function visualizer.fluids(player, player_table)
         if
           not is_pipe_entity
           or (neighbour_position.x > (entity.position.x + 0.99) or neighbour_position.y > (entity.position.y + 0.99))
+          or not area.contains_position(tile_area, neighbour_position)
         then
           local is_underground_connection = entity.type == "pipe-to-ground"
             and neighbour.type == "pipe-to-ground"
-            and (entity.direction == defines.direction.north or entity.direction == defines.direction.west)
+            and (
+              entity.direction == defines.direction.north
+              or entity.direction == defines.direction.west
+              or not area.contains_position(tile_area, neighbour_position)
+            )
           local offset = { 0, 0 }
           if is_underground_connection then
             if entity.direction == defines.direction.north then
@@ -88,7 +92,7 @@ function visualizer.fluids(player, player_table)
             end
           end
           table.insert(
-            render_objects,
+            render_objects.pieces,
             rendering.draw_line({
               color = color,
               width = 5,
@@ -104,7 +108,7 @@ function visualizer.fluids(player, player_table)
         end
         if not is_pipe_entity then
           table.insert(
-            render_objects,
+            render_objects.pieces,
             rendering.draw_rectangle({
               left_top = neighbour,
               left_top_offset = { -0.2, -0.2 },
@@ -122,7 +126,7 @@ function visualizer.fluids(player, player_table)
     end
 
     table.insert(
-      render_objects,
+      render_objects.pieces,
       rendering.draw_circle({
         color = color,
         radius = 0.2,

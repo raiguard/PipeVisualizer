@@ -35,7 +35,7 @@ event.register("pv-toggle", function(e)
     visualizer.destroy(player_table)
     return
   end
-  visualizer.fluids(player, player_table)
+  visualizer.create(player, player_table)
 end)
 
 event.on_player_changed_position(function(e)
@@ -48,10 +48,10 @@ event.on_player_changed_position(function(e)
       x = math.floor(position.x),
       y = math.floor(position.y),
     }
-    if floored_position.x ~= last_position.x and floored_position.y ~= last_position.y then
+    if floored_position.x ~= last_position.x or floored_position.y ~= last_position.y then
       last_position = floored_position
       visualizer.destroy(player_table)
-      visualizer.fluids(player, player_table)
+      visualizer.create(player, player_table)
     end
   end
 end)
