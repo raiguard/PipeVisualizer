@@ -1,4 +1,5 @@
 local area = require("__flib__.area")
+local direction = require("__flib__.direction")
 
 local vivid = require("lib.vivid")
 
@@ -132,18 +133,16 @@ function visualizer.update(player, player_table)
           if
             not is_pipe_entity
             or (neighbour_position.x > (entity.position.x + 0.99) or neighbour_position.y > (entity.position.y + 0.99))
-            or not area.contains_position(tile_area, neighbour_position)
+            or not area.contains_position(overlay_area, neighbour_position)
           then
+            local offset = { 0, 0 }
             local is_underground_connection = entity.type == "pipe-to-ground"
               and neighbour.type == "pipe-to-ground"
-              and (
-                entity.direction == defines.direction.north
-                or entity.direction == defines.direction.west
-                or not area.contains_position(tile_area, neighbour_position)
-              )
-            local offset = { 0, 0 }
+              and entity.direction == direction.opposite(neighbour.direction)
+              and entity.direction
+                == direction.opposite(direction.from_positions(entity.position, neighbour.position, true))
             if is_underground_connection then
-              if entity.direction == defines.direction.north then
+              if entity.direction == defines.direction.north or entity.direction == defines.direction.south then
                 offset = { 0, -0.25 }
               else
                 offset = { -0.25, 0 }
