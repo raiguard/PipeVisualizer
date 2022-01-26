@@ -8,11 +8,10 @@ local visualizer = require("scripts.visualizer")
 local function init_player(player_index)
   --- @class PlayerTable
   global.players[player_index] = {
-    flags = {
-      toggled = false,
-    },
+    enabled = false,
+    entity_objects = {},
     last_position = { x = 0, y = 0 },
-    render_objects = {},
+    rectangle = nil,
   }
 end
 
@@ -31,7 +30,7 @@ end)
 event.register("pv-toggle", function(e)
   local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
-  if player_table.flags.toggled then
+  if player_table.enabled then
     visualizer.destroy(player_table)
     return
   end
@@ -41,7 +40,7 @@ end)
 event.on_player_changed_position(function(e)
   local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
-  if player_table.flags.toggled then
+  if player_table.enabled then
     local last_position = player_table.last_position
     local position = player.position
     local floored_position = {
