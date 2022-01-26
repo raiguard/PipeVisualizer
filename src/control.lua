@@ -49,8 +49,7 @@ event.on_player_changed_position(function(e)
     }
     if floored_position.x ~= last_position.x or floored_position.y ~= last_position.y then
       last_position = floored_position
-      visualizer.destroy(player_table)
-      visualizer.create(player, player_table)
+      visualizer.update(player, player_table)
     end
   end
 end)
