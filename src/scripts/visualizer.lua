@@ -115,100 +115,96 @@ function visualizer.update(player, player_table)
       local fluidbox = entity.fluidbox
       if fluidbox and #fluidbox > 0 then
         local entity_objects = player_table.entity_objects[entity.unit_number]
-        if entity_objects then
-          for _, id in pairs(entity_objects) do
-            rendering.destroy(id)
-          end
-        end
-        local entity_objects = {}
-        local color
+        if not entity_objects then
+          local color
 
-        local neighbours = entity.neighbours
-        for fluidbox_index, fluidbox_neighbours in pairs(neighbours) do
-          --- @type Fluid
-          local fluid = fluidbox[fluidbox_index]
-          if fluid then
-            local base_color = game.fluid_prototypes[fluid.name].base_color
-            local h, s, v, a = vivid.RGBtoHSV(base_color)
-            v = math.max(v, 0.8)
-            local r, g, b, a = vivid.HSVtoRGB(h, s, v, a)
-            color = { r = r, g = g, b = b, a = a }
-          else
-            color = { r = 0.3, g = 0.3, b = 0.3 }
-          end
+          local neighbours = entity.neighbours
+          for fluidbox_index, fluidbox_neighbours in pairs(neighbours) do
+            --- @type Fluid
+            local fluid = fluidbox[fluidbox_index]
+            if fluid then
+              local base_color = game.fluid_prototypes[fluid.name].base_color
+              local h, s, v, a = vivid.RGBtoHSV(base_color)
+              v = math.max(v, 0.8)
+              local r, g, b, a = vivid.HSVtoRGB(h, s, v, a)
+              color = { r = r, g = g, b = b, a = a }
+            else
+              color = { r = 0.3, g = 0.3, b = 0.3 }
+            end
 
-          for _, neighbour in pairs(fluidbox_neighbours) do
-            local neighbour_position = neighbour.position
-            local is_underground_connection = entity.type == "pipe-to-ground"
-              and neighbour.type == "pipe-to-ground"
-              and entity.direction == direction.opposite(neighbour.direction)
-              and entity.direction
-                == direction.opposite(direction.from_positions(entity.position, neighbour.position, true))
-            local is_southeast = neighbour_position.x > (entity.position.x + 0.99)
-              or neighbour_position.y > (entity.position.y + 0.99)
+            for _, neighbour in pairs(fluidbox_neighbours) do
+              local neighbour_position = neighbour.position
+              local is_underground_connection = entity.type == "pipe-to-ground"
+                and neighbour.type == "pipe-to-ground"
+                and entity.direction == direction.opposite(neighbour.direction)
+                and entity.direction
+                  == direction.opposite(direction.from_positions(entity.position, neighbour.position, true))
+              local is_southeast = neighbour_position.x > (entity.position.x + 0.99)
+                or neighbour_position.y > (entity.position.y + 0.99)
 
-            if is_southeast then
-              -- Draw connection line
-              local offset = { 0, 0 }
-              if is_underground_connection then
-                if entity.direction == defines.direction.north or entity.direction == defines.direction.south then
-                  offset = { 0, -0.25 }
-                else
-                  offset = { -0.25, 0 }
+              if is_southeast then
+                -- Draw connection line
+                local offset = { 0, 0 }
+                if is_underground_connection then
+                  if entity.direction == defines.direction.north or entity.direction == defines.direction.south then
+                    offset = { 0, -0.25 }
+                  else
+                    offset = { -0.25, 0 }
+                  end
                 end
+                table.insert(
+                  entity_objects,
+                  rendering.draw_line({
+                    color = color,
+                    width = 5,
+                    gap_length = is_underground_connection and 0.5 or 0,
+                    dash_length = is_underground_connection and 0.5 or 0,
+                    from = entity,
+                    from_offset = offset,
+                    to = neighbour,
+                    surface = neighbour.surface,
+                    players = { player.index },
+                  })
+                )
+              elseif is_underground_connection and not area.contains_position(overlay_area, neighbour_position) then
+                -- Iterate this entity so the underground connection doesn't "pop in" later
+                table.insert(entities, neighbour)
               end
-              table.insert(
-                entity_objects,
-                rendering.draw_line({
-                  color = color,
-                  width = 5,
-                  gap_length = is_underground_connection and 0.5 or 0,
-                  dash_length = is_underground_connection and 0.5 or 0,
-                  from = entity,
-                  from_offset = offset,
-                  to = neighbour,
-                  surface = neighbour.surface,
-                  players = { player.index },
-                })
-              )
-            elseif is_underground_connection and not area.contains_position(overlay_area, neighbour_position) then
-              -- Iterate this entity so the underground connection doesn't "pop in" later
-              table.insert(entities, neighbour)
             end
           end
-        end
 
-        -- Draw entity shape
-        if constants.type_to_shape[entity.type] == "square" then
-          table.insert(
-            entity_objects,
-            rendering.draw_rectangle({
-              left_top = entity,
-              left_top_offset = { -0.2, -0.2 },
-              right_bottom = entity,
-              right_bottom_offset = { 0.2, 0.2 },
-              color = color,
-              filled = true,
-              target = entity,
-              surface = player_surface,
-              players = { player.index },
-            })
-          )
-        else
-          table.insert(
-            entity_objects,
-            rendering.draw_circle({
-              color = color,
-              radius = 0.2,
-              filled = true,
-              target = entity,
-              surface = player_surface,
-              players = { player.index },
-            })
-          )
-        end
+          -- Draw entity shape
+          if constants.type_to_shape[entity.type] == "square" then
+            table.insert(
+              entity_objects,
+              rendering.draw_rectangle({
+                left_top = entity,
+                left_top_offset = { -0.2, -0.2 },
+                right_bottom = entity,
+                right_bottom_offset = { 0.2, 0.2 },
+                color = color,
+                filled = true,
+                target = entity,
+                surface = player_surface,
+                players = { player.index },
+              })
+            )
+          else
+            table.insert(
+              entity_objects,
+              rendering.draw_circle({
+                color = color,
+                radius = 0.2,
+                filled = true,
+                target = entity,
+                surface = player_surface,
+                players = { player.index },
+              })
+            )
+          end
 
-        player_table.entity_objects[entity.unit_number] = entity_objects
+          player_table.entity_objects[entity.unit_number] = entity_objects
+        end
       end
     end
   end
