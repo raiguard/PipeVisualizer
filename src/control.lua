@@ -1,5 +1,3 @@
--- TODO:
--- Better way to update while moving
 local event = require("__flib__.event")
 local vivid = require("lib.vivid")
 
