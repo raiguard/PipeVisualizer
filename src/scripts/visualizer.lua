@@ -173,9 +173,9 @@ function visualizer.update(player, player_table)
           end
         end
 
-        shapes_to_draw[entity.unit_number] = { color = color, entity = entity }
-
-        entity_objects[entity.unit_number] = this_entity_objects
+        local unit_number = entity.unit_number
+        shapes_to_draw[unit_number] = { color = color, entity = entity }
+        entity_objects[unit_number] = this_entity_objects
       end
     end
 
