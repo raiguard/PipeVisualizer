@@ -1,8 +1,6 @@
 local area = require("__flib__.area")
 local direction = require("__flib__.direction")
 
-local vivid = require("lib.vivid")
-
 local constants = require("constants")
 
 local visualizer = {}
@@ -11,7 +9,6 @@ local visualizer = {}
 --- @param player_table PlayerTable
 function visualizer.create(player, player_table)
   player_table.enabled = true
-  -- TODO: Failsafe to make sure that nothing is there?
   player_table.entity_objects = {}
   player_table.rectangle = rendering.draw_rectangle({
     left_top = { x = 0, y = 0 },
@@ -115,33 +112,31 @@ function visualizer.update(player, player_table)
     })
     for _, entity in pairs(entities) do
       local fluidbox = entity.fluidbox
-      local this_entity_objects = entity_objects[entity.unit_number]
       if fluidbox and #fluidbox > 0 and not entity_objects[entity.unit_number] then
         local color
+        local this_entity_objects = {}
         for fluidbox_index, fluidbox_neighbours in pairs(entity.neighbours) do
           --- @type Fluid
           --- TODO: Color by fluid in network (requires an API feature)
           local fluid = fluidbox[fluidbox_index]
           if fluid then
-            local base_color = game.fluid_prototypes[fluid.name].base_color
-            local h, s, v, a = vivid.RGBtoHSV(base_color)
-            v = math.max(v, 0.8)
-            local r, g, b, a = vivid.HSVtoRGB(h, s, v, a)
-            color = { r = r, g = g, b = b, a = a }
+            color = global.fluid_colors[fluid.name]
           else
             color = { r = 0.3, g = 0.3, b = 0.3 }
           end
 
           for _, neighbour in pairs(fluidbox_neighbours) do
+            local entity_direction = entity.direction
             local entity_position = entity.position
             local neighbour_position = neighbour.position
-            local is_underground_connection = entity.type == "pipe-to-ground"
-              and neighbour.type == "pipe-to-ground"
-              and entity.direction == direction.opposite(neighbour.direction)
-              and entity.direction
-                == direction.opposite(direction.from_positions(entity_position, neighbour_position, true))
+
             local is_southeast = neighbour_position.x > (entity_position.x + 0.99)
               or neighbour_position.y > (entity_position.y + 0.99)
+            local is_underground_connection = entity.type == "pipe-to-ground"
+              and neighbour.type == "pipe-to-ground"
+              and entity_direction == direction.opposite(neighbour.direction)
+              and entity_direction
+                == direction.opposite(direction.from_positions(entity_position, neighbour_position, true))
 
             if is_southeast then
               -- Draw connection line
@@ -204,7 +199,7 @@ function visualizer.update(player, player_table)
           )
         end
 
-        player_table.entity_objects[entity.unit_number] = this_entity_objects
+        entity_objects[entity.unit_number] = this_entity_objects
       end
     end
   end

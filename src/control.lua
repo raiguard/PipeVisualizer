@@ -1,6 +1,7 @@
 -- TODO:
 -- Better way to update while moving
 local event = require("__flib__.event")
+local vivid = require("lib.vivid")
 
 local visualizer = require("scripts.visualizer")
 
@@ -16,12 +17,30 @@ local function init_player(player_index)
   }
 end
 
+local function generate_fluid_colors()
+  --- @type table<string, Color>
+  local colors = {}
+  for name, fluid in pairs(game.fluid_prototypes) do
+    local h, s, v, a = vivid.RGBtoHSV(fluid.base_color)
+    v = math.max(v, 0.8)
+    local r, g, b, a = vivid.HSVtoRGB(h, s, v, a)
+    colors[name] = { r = r, g = g, b = b, a = a }
+  end
+  global.fluid_colors = colors
+end
+
 event.on_init(function()
   global.players = {}
+
+  generate_fluid_colors()
 
   for player_index in pairs(game.players) do
     init_player(player_index)
   end
+end)
+
+event.on_configuration_changed(function(e)
+  generate_fluid_colors()
 end)
 
 event.on_player_created(function(e)
