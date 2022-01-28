@@ -1,5 +1,3 @@
-local table = require("__flib__.table")
-
 local constants = {}
 
 -- In the source code, 200 is defined as the maximum viewable distance, but in reality it's around 220
@@ -8,14 +6,37 @@ local constants = {}
 constants.max_viewable_radius = 110 + 5
 
 constants.search_types = {
+  "assembling-machine",
+  "boiler",
+  "fluid-turret",
+  "furnace",
+  "generator",
   "infinity-pipe",
+  "inserter",
+  "mining-drill",
   "offshore-pump",
   "pipe",
   "pipe-to-ground",
   "pump",
+  "rocket-silo",
   "storage-tank",
 }
 
-constants.search_types_lookup = table.invert(constants.search_types)
+constants.type_to_shape = {
+  ["assembling-machine"] = "square",
+  ["boiler"] = "square",
+  ["fluid-turret"] = "square",
+  ["furnace"] = "square",
+  ["generator"] = "square",
+  ["infinity-pipe"] = "circle",
+  ["inserter"] = "square",
+  ["mining-drill"] = "square",
+  ["offshore-pump"] = "square",
+  ["pipe"] = "circle",
+  ["pipe-to-ground"] = "circle",
+  ["pump"] = "triangle",
+  ["rocket-silo"] = "circle",
+  ["storage-tank"] = "circle",
+}
 
 return constants
