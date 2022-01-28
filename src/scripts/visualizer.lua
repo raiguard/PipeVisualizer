@@ -14,7 +14,7 @@ function visualizer.create(player, player_table)
     left_top = { x = 0, y = 0 },
     right_bottom = { x = 0, y = 0 },
     filled = true,
-    color = { a = 0.6 },
+    color = { a = player.mod_settings["pv-overlay-opacity"].value },
     surface = player.surface,
     players = { player.index },
   })
