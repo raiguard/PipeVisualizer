@@ -104,6 +104,7 @@ function visualizer.update(player, player_table)
   player_table.last_position = player_position
 
   local entity_objects = player_table.entity_objects
+  local shapes_to_draw = {}
 
   for _, tile_area in pairs(areas) do
     local entities = player.surface.find_entities_filtered({
@@ -113,16 +114,19 @@ function visualizer.update(player, player_table)
     for _, entity in pairs(entities) do
       local fluidbox = entity.fluidbox
       if fluidbox and #fluidbox > 0 and not entity_objects[entity.unit_number] then
-        local color
+        local color = { r = 0.3, g = 0.3, b = 0.3 }
         local this_entity_objects = {}
         for fluidbox_index, fluidbox_neighbours in pairs(entity.neighbours) do
           --- @type Fluid
           --- TODO: Color by fluid in network (requires an API feature)
           local fluid = fluidbox[fluidbox_index]
+          local this_color
           if fluid then
-            color = global.fluid_colors[fluid.name]
+            -- Only update the shape color if it's not grey
+            this_color = global.fluid_colors[fluid.name]
+            color = this_color
           else
-            color = { r = 0.3, g = 0.3, b = 0.3 }
+            this_color = { r = 0.3, g = 0.3, b = 0.3 }
           end
 
           for _, neighbour in pairs(fluidbox_neighbours) do
@@ -151,7 +155,7 @@ function visualizer.update(player, player_table)
               table.insert(
                 this_entity_objects,
                 rendering.draw_line({
-                  color = color,
+                  color = this_color,
                   width = 5,
                   gap_length = is_underground_connection and 0.5 or 0,
                   dash_length = is_underground_connection and 0.5 or 0,
@@ -169,37 +173,42 @@ function visualizer.update(player, player_table)
           end
         end
 
-        -- Draw entity shape
-        if constants.type_to_shape[entity.type] == "square" then
-          table.insert(
-            this_entity_objects,
-            rendering.draw_rectangle({
-              left_top = entity,
-              left_top_offset = { -0.2, -0.2 },
-              right_bottom = entity,
-              right_bottom_offset = { 0.2, 0.2 },
-              color = color,
-              filled = true,
-              target = entity,
-              surface = player_surface,
-              players = { player.index },
-            })
-          )
-        else
-          table.insert(
-            this_entity_objects,
-            rendering.draw_circle({
-              color = color,
-              radius = 0.2,
-              filled = true,
-              target = entity,
-              surface = player_surface,
-              players = { player.index },
-            })
-          )
-        end
+        shapes_to_draw[entity.unit_number] = { color = color, entity = entity }
 
         entity_objects[entity.unit_number] = this_entity_objects
+      end
+    end
+
+    -- Now draw shapes, so they are on top
+    for unit_number, shape_data in pairs(shapes_to_draw) do
+      local entity = shape_data.entity
+      if constants.type_to_shape[entity.type] == "square" then
+        table.insert(
+          entity_objects[unit_number],
+          rendering.draw_rectangle({
+            left_top = entity,
+            left_top_offset = { -0.2, -0.2 },
+            right_bottom = entity,
+            right_bottom_offset = { 0.2, 0.2 },
+            color = shape_data.color,
+            filled = true,
+            target = entity,
+            surface = player_surface,
+            players = { player.index },
+          })
+        )
+      else
+        table.insert(
+          entity_objects[unit_number],
+          rendering.draw_circle({
+            color = shape_data.color,
+            radius = 0.2,
+            filled = true,
+            target = entity,
+            surface = player_surface,
+            players = { player.index },
+          })
+        )
       end
     end
   end
