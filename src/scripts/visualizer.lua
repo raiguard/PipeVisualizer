@@ -147,9 +147,9 @@ function visualizer.update(player, player_table)
               local offset = { 0, 0 }
               if is_underground_connection then
                 if entity.direction == defines.direction.north or entity.direction == defines.direction.south then
-                  offset = { 0, -0.25 }
+                  offset = { 0, -0.125 }
                 else
-                  offset = { -0.25, 0 }
+                  offset = { -0.125, 0 }
                 end
               end
               table.insert(
@@ -157,8 +157,8 @@ function visualizer.update(player, player_table)
                 rendering.draw_line({
                   color = this_color,
                   width = 5,
-                  gap_length = is_underground_connection and 0.5 or 0,
-                  dash_length = is_underground_connection and 0.5 or 0,
+                  gap_length = is_underground_connection and 0.25 or 0,
+                  dash_length = is_underground_connection and 0.25 or 0,
                   from = entity,
                   from_offset = offset,
                   to = neighbour,
