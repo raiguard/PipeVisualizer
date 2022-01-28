@@ -10,7 +10,7 @@ local visualizer = {}
 function visualizer.create(player, player_table)
   player_table.enabled = true
   player_table.entity_objects = {}
-  player_table.rectangle = rendering.draw_rectangle({
+  player_table.overlay = rendering.draw_rectangle({
     left_top = { x = 0, y = 0 },
     right_bottom = { x = 0, y = 0 },
     filled = true,
@@ -37,8 +37,8 @@ function visualizer.update(player, player_table)
   )
 
   -- Update overlay
-  rendering.set_left_top(player_table.rectangle, overlay_area.left_top)
-  rendering.set_right_bottom(player_table.rectangle, overlay_area.right_bottom)
+  rendering.set_left_top(player_table.overlay, overlay_area.left_top)
+  rendering.set_right_bottom(player_table.overlay, overlay_area.right_bottom)
 
   -- Compute areas to search based on movement
   local areas = {}
@@ -208,7 +208,7 @@ end
 --- @param player_table PlayerTable
 function visualizer.destroy(player_table)
   player_table.enabled = false
-  rendering.destroy(player_table.rectangle)
+  rendering.destroy(player_table.overlay)
   for _, objects in pairs(player_table.entity_objects) do
     for _, id in pairs(objects) do
       rendering.destroy(id)

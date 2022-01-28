@@ -11,7 +11,7 @@ local function init_player(player_index)
     entity_objects = {},
     --- @type Position?
     last_position = nil,
-    rectangle = nil,
+    overlay = nil,
   }
 end
 
