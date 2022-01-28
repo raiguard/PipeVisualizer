@@ -7,5 +7,5 @@
   "contact": "Discord: raiguard#7402",
   "homepage": "https://github.com/raiguard/Factorio-PipeVisualizer",
   "factorio_version": "1.1",
-  "dependencies": [ "base >= 1.1.52" ]
+  "dependencies": [ "base >= 1.1.52", "flib >= 0.10.0" ]
 }
