@@ -43,6 +43,7 @@ function visualizer.update(player, player_table)
   rendering.set_left_top(player_table.rectangle, overlay_area.left_top)
   rendering.set_right_bottom(player_table.rectangle, overlay_area.right_bottom)
 
+  -- Compute areas to search based on movement
   local areas = {}
   if player_table.last_position then
     local last_position = player_table.last_position
@@ -106,7 +107,10 @@ function visualizer.update(player, player_table)
   player_table.last_position = player_position
 
   for _, tile_area in pairs(areas) do
-    local entities = player.surface.find_entities_filtered({ type = constants.search_types, area = tile_area })
+    local entities = player.surface.find_entities_filtered({
+      type = constants.entity_types,
+      area = tile_area,
+    })
     for _, entity in pairs(entities) do
       local fluidbox = entity.fluidbox
       if fluidbox and #fluidbox > 0 then
@@ -143,13 +147,8 @@ function visualizer.update(player, player_table)
             local is_southeast = neighbour_position.x > (entity.position.x + 0.99)
               or neighbour_position.y > (entity.position.y + 0.99)
 
-            if
-              is_underground_connection
-              and not area.contains_position(overlay_area, neighbour_position)
-              and not is_southeast
-            then
-              table.insert(entities, neighbour)
-            elseif is_southeast then
+            if is_southeast then
+              -- Draw connection line
               local offset = { 0, 0 }
               if is_underground_connection then
                 if entity.direction == defines.direction.north or entity.direction == defines.direction.south then
@@ -172,10 +171,14 @@ function visualizer.update(player, player_table)
                   players = { player.index },
                 })
               )
+            elseif is_underground_connection and not area.contains_position(overlay_area, neighbour_position) then
+              -- Iterate this entity so the underground connection doesn't "pop in" later
+              table.insert(entities, neighbour)
             end
           end
         end
 
+        -- Draw entity shape
         if constants.type_to_shape[entity.type] == "square" then
           table.insert(
             entity_objects,

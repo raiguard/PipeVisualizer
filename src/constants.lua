@@ -5,7 +5,7 @@ local constants = {}
 -- Add five for a comfortable margin
 constants.max_viewable_radius = 110 + 5
 
-constants.search_types = {
+constants.entity_types = {
   "assembling-machine",
   "boiler",
   "fluid-turret",
