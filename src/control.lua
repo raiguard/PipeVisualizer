@@ -12,6 +12,7 @@ local function init_player(player_index)
     --- @type table<number, number[]>
     entity_objects = {},
     hovered = false,
+    hover_enabled = false,
     --- @type Position?
     last_position = nil,
     --- @type number
@@ -32,53 +33,6 @@ local function generate_fluid_colors()
   end
   global.fluid_colors = colors
 end
-
-event.on_init(function()
-  global.players = {}
-
-  generate_fluid_colors()
-
-  for player_index in pairs(game.players) do
-    init_player(player_index)
-  end
-end)
-
-event.on_configuration_changed(function()
-  generate_fluid_colors()
-end)
-
-event.on_player_created(function(e)
-  init_player(e.player_index)
-end)
-
-event.register("pv-toggle", function(e)
-  local player = game.get_player(e.player_index)
-  local player_table = global.players[e.player_index]
-  if player_table.hovered then
-    return
-  end
-  if player_table.enabled then
-    visualizer.destroy(player_table)
-    return
-  end
-  visualizer.create(player, player_table)
-end)
-
-event.on_player_changed_position(function(e)
-  local player = game.get_player(e.player_index)
-  local player_table = global.players[e.player_index]
-  if player_table.enabled then
-    local last_position = player_table.last_position
-    local position = player.position
-    local floored_position = {
-      x = math.floor(position.x),
-      y = math.floor(position.y),
-    }
-    if floored_position.x ~= last_position.x or floored_position.y ~= last_position.y then
-      visualizer.update(player, player_table)
-    end
-  end
-end)
 
 --- @param to_walk LuaEntity[]
 --- @param entities table<number, LuaEntity>
@@ -102,6 +56,79 @@ local function walk_fluid_system(to_walk, entities, fluid_system_id)
   return to_walk_next
 end
 
+local function toggle_hover(player, player_table)
+  player_table.hover_enabled = not player_table.hover_enabled
+  player.set_shortcut_toggled("pv-toggle-hover", player_table.hover_enabled)
+end
+
+local function toggle_overlay(player, player_table)
+  if player_table.hovered then
+    return
+  end
+  if player_table.enabled then
+    visualizer.destroy(player_table)
+  else
+    visualizer.create(player, player_table)
+  end
+  player.set_shortcut_toggled("pv-toggle-overlay", player_table.enabled)
+end
+
+event.on_init(function()
+  global.players = {}
+
+  generate_fluid_colors()
+
+  for player_index in pairs(game.players) do
+    init_player(player_index)
+  end
+end)
+
+event.on_configuration_changed(function()
+  generate_fluid_colors()
+end)
+
+event.on_player_created(function(e)
+  init_player(e.player_index)
+end)
+
+event.register("pv-toggle-hover", function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = global.players[e.player_index]
+  toggle_hover(player, player_table)
+end)
+
+event.register("pv-toggle-overlay", function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = global.players[e.player_index]
+  toggle_overlay(player, player_table)
+end)
+
+event.on_lua_shortcut(function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = global.players[e.player_index]
+  if e.prototype_name == "pv-toggle-hover" then
+    toggle_hover(player, player_table)
+  elseif e.prototype_name == "pv-toggle-overlay" then
+    toggle_overlay(player, player_table)
+  end
+end)
+
+event.on_player_changed_position(function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = global.players[e.player_index]
+  if player_table.enabled then
+    local last_position = player_table.last_position
+    local position = player.position
+    local floored_position = {
+      x = math.floor(position.x),
+      y = math.floor(position.y),
+    }
+    if floored_position.x ~= last_position.x or floored_position.y ~= last_position.y then
+      visualizer.update(player, player_table)
+    end
+  end
+end)
+
 event.on_selected_entity_changed(function(e)
   local player_table = global.players[e.player_index]
   if not player_table.enabled then
@@ -117,6 +144,9 @@ event.on_selected_entity_changed(function(e)
       end
       if player_table.hovered then
         visualizer.destroy(player_table)
+      end
+      if not player_table.hover_enabled then
+        return
       end
       player_table.hovered = true
 
