@@ -11,7 +11,10 @@ local function init_player(player_index)
     entity_objects = {},
     --- @type Position?
     last_position = nil,
+    --- @type number
     overlay = nil,
+    --- @type BoundingBox
+    overlay_area = nil,
   }
 end
 
@@ -37,7 +40,7 @@ event.on_init(function()
   end
 end)
 
-event.on_configuration_changed(function(e)
+event.on_configuration_changed(function()
   generate_fluid_colors()
 end)
 
