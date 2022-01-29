@@ -225,7 +225,10 @@ end
 --- @param player_table PlayerTable
 function visualizer.destroy(player_table)
   player_table.enabled = false
-  rendering.destroy(player_table.overlay)
+  if player_table.overlay then
+    rendering.destroy(player_table.overlay)
+    player_table.overlay = nil
+  end
   for _, objects in pairs(player_table.entity_objects) do
     for _, id in pairs(objects) do
       rendering.destroy(id)
