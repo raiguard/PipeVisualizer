@@ -1,5 +1,6 @@
 local area = require("__flib__.area")
 local direction = require("__flib__.direction")
+local table = require("__flib__.table")
 
 local constants = require("constants")
 
@@ -108,24 +109,34 @@ function visualizer.update(player, player_table)
       type = constants.entity_types,
       area = tile_area,
     })
-    visualizer.draw_entities(player, player_table, entities)
+    visualizer.draw_entities(player, player_table, entities, true)
   end
 end
+
+--- @class ShapeData
+--- @field fluid_system_id number
+--- @field entity LuaEntity
 
 --- @param player LuaPlayer
 --- @param player_table PlayerTable
 --- @param entities LuaEntity[]
-function visualizer.draw_entities(player, player_table, entities)
+--- @param is_overlay boolean
+function visualizer.draw_entities(player, player_table, entities, is_overlay)
   local entity_objects = player_table.entity_objects
+  --- @type table<number, ShapeData>
   local shapes_to_draw = {}
   local overlay_area = player_table.overlay_area
   local fluid_colors = global.fluid_colors
+  --- @type table<number, Color>
   local fluid_system_colors = {}
-  local fluid_system_uncolored = {}
+  --- @type table<number, number[]>
+  local fluid_system_uncolored_entities = {}
 
   for _, entity in pairs(entities) do
     local fluidbox = entity.fluidbox
-    if fluidbox and #fluidbox > 0 and not entity_objects[entity.unit_number] then
+    local unit_number = entity.unit_number
+    if fluidbox and #fluidbox > 0 and not entity_objects[unit_number] then
+      --- @type number?
       local fluid_system_id = nil
       local this_entity_objects = {}
       for fluidbox_index, fluidbox_neighbours in pairs(entity.neighbours) do
@@ -133,37 +144,31 @@ function visualizer.draw_entities(player, player_table, entities)
         if fluid_system_id then
           -- Get the color
           local color = fluid_system_colors[fluid_system_id]
-          if color then
-            shape_color = color
-          else
-            --- @type Fluid
+          if not color then
+            --- @type Fluid|FluidBoxFilter|nil
             local fluid = fluidbox[fluidbox_index] or fluidbox.get_filter(fluidbox_index)
             if fluid then
               color = fluid_colors[fluid.name]
-              -- Update shape and fluid system color
-              shape_color = color
+              -- Update fluid system color
               fluid_system_colors[fluid_system_id] = color
-              -- Retroactively apply colors to other entities in this network
-              for _, unit_number in pairs(fluid_system_uncolored[fluid_system_id] or {}) do
+              -- Retroactively apply colors to other entities in this fluid system
+              for _, unit_number in pairs(fluid_system_uncolored_entities[fluid_system_id] or {}) do
                 for _, id in pairs(entity_objects[unit_number] or {}) do
                   rendering.set_color(id, color)
                 end
               end
-              fluid_system_uncolored[fluid_system_id] = nil
+              fluid_system_uncolored_entities[fluid_system_id] = nil
             else
               color = constants.default_color
-              local uncolored_entities = fluid_system_uncolored[fluid_system_id]
-              if not uncolored_entities then
-                uncolored_entities = {}
-                fluid_system_uncolored[fluid_system_id] = uncolored_entities
-              end
-              table.insert(uncolored_entities, entity.unit_number)
+              local uncolored_entities = table.get_or_insert(fluid_system_uncolored_entities, fluid_system_id, {})
+              table.insert(uncolored_entities, unit_number)
             end
           end
 
+          local entity_direction = entity.direction
+          local entity_position = entity.position
+
           for _, neighbour in pairs(fluidbox_neighbours) do
-            local entity_direction = entity.direction
-            local entity_position = entity.position
             local neighbour_position = neighbour.position
 
             local is_southeast = neighbour_position.x > (entity_position.x + 0.99)
@@ -198,7 +203,11 @@ function visualizer.draw_entities(player, player_table, entities)
                   players = { player.index },
                 })
               )
-            elseif is_underground_connection and not area.contains_position(overlay_area, neighbour_position) then
+            elseif
+              is_overlay -- Don't do this if we're using hover mode
+              and is_underground_connection
+              and not area.contains_position(overlay_area, neighbour_position)
+            then
               -- Iterate the neighbour to draw the underground connection line
               table.insert(entities, neighbour)
             end
@@ -206,7 +215,6 @@ function visualizer.draw_entities(player, player_table, entities)
         end
       end
 
-      local unit_number = entity.unit_number
       shapes_to_draw[unit_number] = { fluid_system_id = fluid_system_id, entity = entity }
       entity_objects[unit_number] = this_entity_objects
     end
@@ -216,7 +224,8 @@ function visualizer.draw_entities(player, player_table, entities)
   for unit_number, shape_data in pairs(shapes_to_draw) do
     local color = fluid_system_colors[shape_data.fluid_system_id] or constants.default_color
     local entity = shape_data.entity
-    if constants.type_to_shape[entity.type] == "square" then
+    local shape_type = constants.type_to_shape[entity.type]
+    if shape_type == "square" then
       table.insert(
         entity_objects[unit_number],
         rendering.draw_rectangle({
@@ -231,7 +240,7 @@ function visualizer.draw_entities(player, player_table, entities)
           players = { player.index },
         })
       )
-    else
+    elseif shape_type == "circle" then
       table.insert(
         entity_objects[unit_number],
         rendering.draw_circle({
@@ -243,6 +252,46 @@ function visualizer.draw_entities(player, player_table, entities)
           players = { player.index },
         })
       )
+    elseif shape_type == "diamond" then
+      table.insert(
+        entity_objects[unit_number],
+        rendering.draw_polygon({
+          color = color,
+          vertices = {
+            { target = entity, target_offset = { 0, -0.28 } },
+            { target = entity, target_offset = { 0.28, -0 } },
+            { target = entity, target_offset = { -0.28, 0 } },
+            { target = entity, target_offset = { 0, 0.28 } },
+          },
+          filled = true,
+          target = entity,
+          surface = entity.surface,
+          players = { player.index },
+        })
+      )
+    elseif shape_type == "triangle" then
+      -- local orientation = direction.to_orientation(entity.direction)
+      -- local vertices = {
+      --   -- { target = entity.position, target_offset = { 0, -0.2 } },
+      --   -- { target = entity.position, target_offset = { 0.2, 0 } },
+      --   -- { target = entity.position, target_offset = { -0.2, 0 } },
+      --   { target = { x = entity.position.x, y = entity.position.y - 0.2 } },
+      --   { target = { x = entity.position.x + 0.2, y = entity.position.y } },
+      --   { target = { x = entity.position.x - 0.2, y = entity.position.y } },
+      -- }
+      -- game.print(serpent.block(vertices))
+      -- table.insert(
+      --   entity_objects[unit_number],
+      --   rendering.draw_polygon({
+      --     color = { r = 1 },
+      --     vertices = vertices,
+      --     orientation = orientation,
+      --     filled = true,
+      --     target = entity,
+      --     surface = entity.surface,
+      --     players = { player.index },
+      --   })
+      -- )
     end
   end
 end

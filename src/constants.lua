@@ -36,9 +36,9 @@ constants.type_to_shape = {
   ["offshore-pump"] = "square",
   ["pipe"] = "circle",
   ["pipe-to-ground"] = "circle",
-  ["pump"] = "triangle",
+  ["pump"] = "circle",
   ["rocket-silo"] = "circle",
-  ["storage-tank"] = "circle",
+  ["storage-tank"] = "diamond",
 }
 
 return constants

@@ -8,6 +8,7 @@ local function init_player(player_index)
   --- @class PlayerTable
   global.players[player_index] = {
     enabled = false,
+    --- @type table<number, number[]>
     entity_objects = {},
     hovered = false,
     --- @type Position?
