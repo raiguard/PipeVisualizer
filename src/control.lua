@@ -1,6 +1,7 @@
 local event = require("__flib__.event")
 local vivid = require("lib.vivid")
 
+local constants = require("constants")
 local visualizer = require("scripts.visualizer")
 
 --- @param player_index number
@@ -53,6 +54,9 @@ end)
 event.register("pv-toggle", function(e)
   local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
+  if player_table.hovered then
+    return
+  end
   if player_table.enabled then
     visualizer.destroy(player_table)
     return
@@ -72,6 +76,65 @@ event.on_player_changed_position(function(e)
     }
     if floored_position.x ~= last_position.x or floored_position.y ~= last_position.y then
       visualizer.update(player, player_table)
+    end
+  end
+end)
+
+--- @param to_walk LuaEntity[]
+--- @param entities table<number, LuaEntity>
+--- @param fluid_system_id number
+local function walk_fluid_system(to_walk, entities, fluid_system_id)
+  local to_walk_next = {}
+  for _, entity in pairs(to_walk) do
+    local unit_number = entity.unit_number
+    if not entities[unit_number] then
+      entities[unit_number] = entity
+      local fluidbox = entity.fluidbox
+      for fluidbox_index, fluidbox_neighbours in pairs(entity.neighbours) do
+        if fluidbox.get_fluid_system_id(fluidbox_index) == fluid_system_id then
+          for _, neighbour in pairs(fluidbox_neighbours) do
+            to_walk_next[neighbour.unit_number] = neighbour
+          end
+        end
+      end
+    end
+  end
+  return to_walk_next
+end
+
+event.on_selected_entity_changed(function(e)
+  local player_table = global.players[e.player_index]
+  if not player_table.enabled then
+    local player = game.get_player(e.player_index)
+    local selected = player.selected
+    if selected and constants.type_to_shape[selected.type] then
+      if player_table.entity_objects[selected.unit_number] then
+        return
+      end
+      local fluidbox = selected.fluidbox
+      if not fluidbox or #fluidbox == 0 then
+        return
+      end
+      if player_table.hovered then
+        visualizer.destroy(player_table)
+      end
+      player_table.hovered = true
+
+      -- Iterate all entities in each fluid system
+      local entities = {}
+      local fluid_system_ids = {}
+      for fluidbox_index, fluidbox_neighbours in pairs(selected.neighbours) do
+        local fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
+        fluid_system_ids[fluid_system_id] = true
+        local to_walk = fluidbox_neighbours
+        while next(to_walk) do
+          to_walk = walk_fluid_system(to_walk, entities, fluid_system_id)
+        end
+      end
+      visualizer.draw_entities(player, player_table, entities, { fluid_system_ids = fluid_system_ids })
+    elseif player_table.hovered then
+      player_table.hovered = false
+      visualizer.destroy(player_table)
     end
   end
 end)

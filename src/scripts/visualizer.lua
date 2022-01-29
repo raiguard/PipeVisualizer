@@ -109,7 +109,7 @@ function visualizer.update(player, player_table)
       type = constants.entity_types,
       area = tile_area,
     })
-    visualizer.draw_entities(player, player_table, entities, true)
+    visualizer.draw_entities(player, player_table, entities, { is_overlay = true })
   end
 end
 
@@ -117,11 +117,15 @@ end
 --- @field fluid_system_id number
 --- @field entity LuaEntity
 
+--- @class DrawEntitiesOptions
+--- @field is_overlay boolean
+--- @field fluid_system_ids number[]
+
 --- @param player LuaPlayer
 --- @param player_table PlayerTable
 --- @param entities LuaEntity[]
---- @param is_overlay boolean
-function visualizer.draw_entities(player, player_table, entities, is_overlay)
+--- @param options DrawEntitiesOptions
+function visualizer.draw_entities(player, player_table, entities, options)
   local entity_objects = player_table.entity_objects
   --- @type table<number, ShapeData>
   local shapes_to_draw = {}
@@ -131,6 +135,7 @@ function visualizer.draw_entities(player, player_table, entities, is_overlay)
   local fluid_system_colors = {}
   --- @type table<number, number[]>
   local fluid_system_uncolored_entities = {}
+  local fluid_system_ids = options.fluid_system_ids
 
   for _, entity in pairs(entities) do
     local fluidbox = entity.fluidbox
@@ -140,8 +145,9 @@ function visualizer.draw_entities(player, player_table, entities, is_overlay)
       local fluid_system_id = nil
       local this_entity_objects = {}
       for fluidbox_index, fluidbox_neighbours in pairs(entity.neighbours) do
-        fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
-        if fluid_system_id then
+        local this_fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
+        if this_fluid_system_id and (not fluid_system_ids or fluid_system_ids[this_fluid_system_id]) then
+          fluid_system_id = this_fluid_system_id
           -- Get the color
           local color = fluid_system_colors[fluid_system_id]
           if not color then
@@ -204,7 +210,7 @@ function visualizer.draw_entities(player, player_table, entities, is_overlay)
                 })
               )
             elseif
-              is_overlay -- Don't do this if we're using hover mode
+              options.is_overlay -- Don't do this if we're using hover mode
               and is_underground_connection
               and not area.contains_position(overlay_area, neighbour_position)
             then
