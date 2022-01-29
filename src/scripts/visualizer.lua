@@ -119,77 +119,102 @@ function visualizer.draw_entities(player, player_table, entities)
   local entity_objects = player_table.entity_objects
   local shapes_to_draw = {}
   local overlay_area = player_table.overlay_area
+  local fluid_colors = global.fluid_colors
+  local fluid_system_colors = {}
+  local fluid_system_uncolored = {}
 
   for _, entity in pairs(entities) do
     local fluidbox = entity.fluidbox
     if fluidbox and #fluidbox > 0 and not entity_objects[entity.unit_number] then
-      local color = { r = 0.3, g = 0.3, b = 0.3 }
+      local fluid_system_id = nil
       local this_entity_objects = {}
       for fluidbox_index, fluidbox_neighbours in pairs(entity.neighbours) do
-        --- @type Fluid
-        --- TODO: Color by fluid in network (requires an API feature)
-        local fluid = fluidbox[fluidbox_index]
-        local this_color
-        if fluid then
-          -- Only update the shape color if it's not grey
-          this_color = global.fluid_colors[fluid.name]
-          color = this_color
-        else
-          this_color = { r = 0.3, g = 0.3, b = 0.3 }
-        end
-
-        for _, neighbour in pairs(fluidbox_neighbours) do
-          local entity_direction = entity.direction
-          local entity_position = entity.position
-          local neighbour_position = neighbour.position
-
-          local is_southeast = neighbour_position.x > (entity_position.x + 0.99)
-            or neighbour_position.y > (entity_position.y + 0.99)
-          local is_underground_connection = entity.type == "pipe-to-ground"
-            and neighbour.type == "pipe-to-ground"
-            and entity_direction == direction.opposite(neighbour.direction)
-            and entity_direction
-              == direction.opposite(direction.from_positions(entity_position, neighbour_position, true))
-
-          if is_southeast then
-            -- Draw connection line
-            local offset = { 0, 0 }
-            if is_underground_connection then
-              if entity.direction == defines.direction.north or entity.direction == defines.direction.south then
-                offset = { 0, -0.125 }
-              else
-                offset = { -0.125, 0 }
+        fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
+        if fluid_system_id then
+          -- Get the color
+          local color = fluid_system_colors[fluid_system_id]
+          if color then
+            shape_color = color
+          else
+            --- @type Fluid
+            local fluid = fluidbox[fluidbox_index] or fluidbox.get_filter(fluidbox_index)
+            if fluid then
+              color = fluid_colors[fluid.name]
+              -- Update shape and fluid system color
+              shape_color = color
+              fluid_system_colors[fluid_system_id] = color
+              -- Retroactively apply colors to other entities in this network
+              for _, unit_number in pairs(fluid_system_uncolored[fluid_system_id] or {}) do
+                for _, id in pairs(entity_objects[unit_number] or {}) do
+                  rendering.set_color(id, color)
+                end
               end
+              fluid_system_uncolored[fluid_system_id] = nil
+            else
+              color = constants.default_color
+              local uncolored_entities = fluid_system_uncolored[fluid_system_id]
+              if not uncolored_entities then
+                uncolored_entities = {}
+                fluid_system_uncolored[fluid_system_id] = uncolored_entities
+              end
+              table.insert(uncolored_entities, entity.unit_number)
             end
-            table.insert(
-              this_entity_objects,
-              rendering.draw_line({
-                color = this_color,
-                width = 5,
-                gap_length = is_underground_connection and 0.25 or 0,
-                dash_length = is_underground_connection and 0.25 or 0,
-                from = entity,
-                from_offset = offset,
-                to = neighbour,
-                surface = neighbour.surface,
-                players = { player.index },
-              })
-            )
-          elseif is_underground_connection and not area.contains_position(overlay_area, neighbour_position) then
-            -- Iterate the neighbour to draw the underground connection line
-            table.insert(entities, neighbour)
+          end
+
+          for _, neighbour in pairs(fluidbox_neighbours) do
+            local entity_direction = entity.direction
+            local entity_position = entity.position
+            local neighbour_position = neighbour.position
+
+            local is_southeast = neighbour_position.x > (entity_position.x + 0.99)
+              or neighbour_position.y > (entity_position.y + 0.99)
+            local is_underground_connection = entity.type == "pipe-to-ground"
+              and neighbour.type == "pipe-to-ground"
+              and entity_direction == direction.opposite(neighbour.direction)
+              and entity_direction
+                == direction.opposite(direction.from_positions(entity_position, neighbour_position, true))
+
+            if is_southeast then
+              -- Draw connection line
+              local offset = { 0, 0 }
+              if is_underground_connection then
+                if entity.direction == defines.direction.north or entity.direction == defines.direction.south then
+                  offset = { 0, -0.125 }
+                else
+                  offset = { -0.125, 0 }
+                end
+              end
+              table.insert(
+                this_entity_objects,
+                rendering.draw_line({
+                  color = color,
+                  width = 5,
+                  gap_length = is_underground_connection and 0.25 or 0,
+                  dash_length = is_underground_connection and 0.25 or 0,
+                  from = entity,
+                  from_offset = offset,
+                  to = neighbour,
+                  surface = neighbour.surface,
+                  players = { player.index },
+                })
+              )
+            elseif is_underground_connection and not area.contains_position(overlay_area, neighbour_position) then
+              -- Iterate the neighbour to draw the underground connection line
+              table.insert(entities, neighbour)
+            end
           end
         end
       end
 
       local unit_number = entity.unit_number
-      shapes_to_draw[unit_number] = { color = color, entity = entity }
+      shapes_to_draw[unit_number] = { fluid_system_id = fluid_system_id, entity = entity }
       entity_objects[unit_number] = this_entity_objects
     end
   end
 
   -- Now draw shapes, so they are on top
   for unit_number, shape_data in pairs(shapes_to_draw) do
+    local color = fluid_system_colors[shape_data.fluid_system_id] or constants.default_color
     local entity = shape_data.entity
     if constants.type_to_shape[entity.type] == "square" then
       table.insert(
@@ -199,7 +224,7 @@ function visualizer.draw_entities(player, player_table, entities)
           left_top_offset = { -0.2, -0.2 },
           right_bottom = entity,
           right_bottom_offset = { 0.2, 0.2 },
-          color = shape_data.color,
+          color = color,
           filled = true,
           target = entity,
           surface = entity.surface,
@@ -210,7 +235,7 @@ function visualizer.draw_entities(player, player_table, entities)
       table.insert(
         entity_objects[unit_number],
         rendering.draw_circle({
-          color = shape_data.color,
+          color = color,
           radius = 0.2,
           filled = true,
           target = entity,

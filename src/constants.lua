@@ -1,5 +1,7 @@
 local constants = {}
 
+constants.default_color = { r = 0.3, g = 0.3, b = 0.3 }
+
 -- In the source code, 200 is defined as the maximum viewable distance, but in reality it's around 220
 -- Map editor is 3x that, but we will ignore that for now
 -- Add five for a comfortable margin

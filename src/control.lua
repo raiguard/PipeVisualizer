@@ -9,6 +9,7 @@ local function init_player(player_index)
   global.players[player_index] = {
     enabled = false,
     entity_objects = {},
+    hovered = false,
     --- @type Position?
     last_position = nil,
     --- @type number
