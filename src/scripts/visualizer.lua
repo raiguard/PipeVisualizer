@@ -275,29 +275,6 @@ function visualizer.draw_entities(player, player_table, entities, options)
           players = { player.index },
         })
       )
-    elseif shape_type == "triangle" then
-      -- local orientation = direction.to_orientation(entity.direction)
-      -- local vertices = {
-      --   -- { target = entity.position, target_offset = { 0, -0.2 } },
-      --   -- { target = entity.position, target_offset = { 0.2, 0 } },
-      --   -- { target = entity.position, target_offset = { -0.2, 0 } },
-      --   { target = { x = entity.position.x, y = entity.position.y - 0.2 } },
-      --   { target = { x = entity.position.x + 0.2, y = entity.position.y } },
-      --   { target = { x = entity.position.x - 0.2, y = entity.position.y } },
-      -- }
-      -- game.print(serpent.block(vertices))
-      -- table.insert(
-      --   entity_objects[unit_number],
-      --   rendering.draw_polygon({
-      --     color = { r = 1 },
-      --     vertices = vertices,
-      --     orientation = orientation,
-      --     filled = true,
-      --     target = entity,
-      --     surface = entity.surface,
-      --     players = { player.index },
-      --   })
-      -- )
     end
   end
 end
