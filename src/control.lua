@@ -71,7 +71,7 @@ local function toggle_overlay(player, player_table)
     return
   end
   if player_table.enabled then
-    visualizer.destroy(player_table)
+    visualizer.destroy(player, player_table)
   else
     visualizer.create(player, player_table)
   end
@@ -148,7 +148,7 @@ event.on_selected_entity_changed(function(e)
         return
       end
       if player_table.hovered then
-        visualizer.destroy(player_table)
+        visualizer.destroy(player, player_table)
       end
       if not player_table.hover_enabled then
         return
@@ -169,7 +169,20 @@ event.on_selected_entity_changed(function(e)
       visualizer.draw_entities(player, player_table, entities, { fluid_system_ids = fluid_system_ids })
     elseif player_table.hovered then
       player_table.hovered = false
-      visualizer.destroy(player_table)
+      visualizer.destroy(player, player_table)
+    end
+  end
+end)
+
+event.on_gui_switch_state_changed(function(e)
+  local player_table = global.players[e.player_index]
+  if player_table.enabled then
+    local element = e.element
+    if element and element.valid and element.name == "pv_mode_switch" then
+      player_table.mode = element.switch_state == "left" and constants.modes.fluid or constants.modes.system
+      local player = game.get_player(e.player_index)
+      visualizer.destroy(player, player_table)
+      visualizer.create(player, player_table)
     end
   end
 end)

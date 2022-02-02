@@ -1,6 +1,7 @@
 local area = require("__flib__.area")
 local direction = require("__flib__.direction")
 local table = require("__flib__.table")
+local mod_gui = require("__core__.lualib.mod-gui")
 
 local constants = require("constants")
 
@@ -25,6 +26,23 @@ function visualizer.create(player, player_table)
   )
 
   visualizer.update(player, player_table)
+
+  -- GUI
+  local frame_flow = mod_gui.get_frame_flow(player)
+  if frame_flow and frame_flow.valid and not frame_flow.pv_window then
+    frame_flow.add({ type = "frame", name = "pv_window", style = mod_gui.frame_style, caption = { "gui.pv-mode" } }).add({
+      type = "frame",
+      style = "inside_shallow_frame_with_padding",
+    }).add({
+      type = "switch",
+      name = "pv_mode_switch",
+      left_label_caption = { "gui.pv-fluid" },
+      right_label_caption = { "gui.pv-system" },
+      left_label_tooltip = { "gui.pv-fluid-description" },
+      right_label_tooltip = { "gui.pv-system-description" },
+      switch_state = player_table.mode == constants.modes.fluid and "left" or "right",
+    })
+  end
 end
 
 --- @param player LuaPlayer
@@ -291,7 +309,7 @@ function visualizer.draw_entities(player, player_table, entities, options)
 end
 
 --- @param player_table PlayerTable
-function visualizer.destroy(player_table)
+function visualizer.destroy(player, player_table)
   player_table.enabled = false
   if player_table.overlay then
     rendering.destroy(player_table.overlay)
@@ -306,6 +324,12 @@ function visualizer.destroy(player_table)
   player_table.fluid_system_colors = {}
   player_table.fluid_system_color_index = 0
   player_table.last_position = nil
+
+  -- GUI
+  local frame_flow = mod_gui.get_frame_flow(player)
+  if frame_flow and frame_flow.valid and frame_flow.pv_window and frame_flow.pv_window.valid then
+    frame_flow.pv_window.destroy()
+  end
 end
 
 return visualizer
