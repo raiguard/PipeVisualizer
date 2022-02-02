@@ -17,7 +17,7 @@ local function init_player(player_index)
     hovered = false,
     hover_enabled = false,
     --- @type constants.modes
-    mode = constants.modes.system,
+    mode = constants.modes.fluid,
     --- @type Position?
     last_position = nil,
     --- @type number
