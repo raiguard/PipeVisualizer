@@ -132,7 +132,8 @@ function visualizer.draw_entities(player, player_table, entities, options)
   local overlay_area = player_table.overlay_area
   local fluid_colors = global.fluid_colors
   --- @type table<number, Color>
-  local fluid_system_colors = {}
+  local fluid_system_colors = player_table.fluid_system_colors
+  local fluid_system_color_index = player_table.fluid_system_color_index
   --- @type table<number, number[]>
   local fluid_system_uncolored_entities = {}
   local fluid_system_ids = options.fluid_system_ids
@@ -151,10 +152,18 @@ function visualizer.draw_entities(player, player_table, entities, options)
           -- Get the color
           local color = fluid_system_colors[fluid_system_id]
           if not color then
-            --- @type Fluid|FluidBoxFilter|nil
-            local fluid = fluidbox[fluidbox_index] or fluidbox.get_filter(fluidbox_index)
-            if fluid then
-              color = fluid_colors[fluid.name]
+            if player_table.mode == constants.modes.fluid then
+              --- @type Fluid|FluidBoxFilter|nil
+              local fluid = fluidbox[fluidbox_index] or fluidbox.get_filter(fluidbox_index)
+              if fluid then
+                color = fluid_colors[fluid.name]
+              end
+            else
+              fluid_system_color_index = fluid_system_color_index + 1
+              -- TODO: Add more colors
+              color = constants.system_colors[fluid_system_color_index] or constants.default_color
+            end
+            if color then
               -- Update fluid system color
               fluid_system_colors[fluid_system_id] = color
               -- Retroactively apply colors to other entities in this fluid system
@@ -277,6 +286,8 @@ function visualizer.draw_entities(player, player_table, entities, options)
       )
     end
   end
+
+  player_table.fluid_system_color_index = fluid_system_color_index
 end
 
 --- @param player_table PlayerTable
@@ -292,6 +303,8 @@ function visualizer.destroy(player_table)
     end
   end
   player_table.entity_objects = {}
+  player_table.fluid_system_colors = {}
+  player_table.fluid_system_color_index = 0
   player_table.last_position = nil
 end
 

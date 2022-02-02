@@ -11,8 +11,13 @@ local function init_player(player_index)
     enabled = false,
     --- @type table<number, number[]>
     entity_objects = {},
+    --- @type table<number, Color>
+    fluid_system_colors = {},
+    fluid_system_color_index = 0,
     hovered = false,
     hover_enabled = false,
+    --- @type constants.modes
+    mode = constants.modes.system,
     --- @type Position?
     last_position = nil,
     --- @type number
