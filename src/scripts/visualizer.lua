@@ -178,7 +178,6 @@ function visualizer.draw_entities(player, player_table, entities, options)
               end
             else
               fluid_system_color_index = fluid_system_color_index + 1
-              -- TODO: Add more colors
               color = constants.system_colors[fluid_system_color_index] or constants.default_color
             end
             if color then

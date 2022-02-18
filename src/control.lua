@@ -61,11 +61,15 @@ local function walk_fluid_system(to_walk, entities, fluid_system_id)
   return to_walk_next
 end
 
+--- @param player LuaPlayer
+--- @param player_table PlayerTable
 local function toggle_hover(player, player_table)
   player_table.hover_enabled = not player_table.hover_enabled
   player.set_shortcut_toggled("pv-toggle-hover", player_table.hover_enabled)
 end
 
+--- @param player LuaPlayer
+--- @param player_table PlayerTable
 local function toggle_overlay(player, player_table)
   if player_table.hovered then
     return
@@ -79,6 +83,7 @@ local function toggle_overlay(player, player_table)
 end
 
 event.on_init(function()
+  --- @type table<number, PlayerTable>
   global.players = {}
 
   generate_fluid_colors()
