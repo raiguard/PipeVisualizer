@@ -6,4 +6,4 @@ Date: ????
 Version: 1.0.0
 Date: 2022-02-24
   Features:
-    - Initaial release
+    - Initial release
