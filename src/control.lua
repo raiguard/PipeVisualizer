@@ -126,7 +126,7 @@ end)
 event.on_player_changed_position(function(e)
   local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
-  if player_table.enabled then
+  if player_table and player_table.enabled then
     local last_position = player_table.last_position
     local position = player.position
     local floored_position = {
@@ -141,7 +141,7 @@ end)
 
 event.on_selected_entity_changed(function(e)
   local player_table = global.players[e.player_index]
-  if not player_table.enabled then
+  if not player_table or not player_table.enabled then
     local player = game.get_player(e.player_index)
     local selected = player.selected
     if selected and constants.type_to_shape[selected.type] then
@@ -181,7 +181,7 @@ end)
 
 event.on_gui_switch_state_changed(function(e)
   local player_table = global.players[e.player_index]
-  if player_table.enabled then
+  if player_table and player_table.enabled then
     local element = e.element
     if element and element.valid and element.name == "pv_mode_switch" then
       player_table.mode = element.switch_state == "left" and constants.modes.fluid or constants.modes.system
