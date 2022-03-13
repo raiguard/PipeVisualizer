@@ -62,7 +62,7 @@ function visualizer.update(player, player_table)
   local areas = {}
   if player_table.last_position then
     local last_position = player_table.last_position
-    --- @type Position
+    --- @type MapPosition
     local delta = {
       x = player_position.x - last_position.x,
       y = player_position.y - last_position.y,

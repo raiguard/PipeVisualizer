@@ -18,7 +18,7 @@ local function init_player(player_index)
     hover_enabled = false,
     --- @type constants.modes
     mode = constants.modes.fluid,
-    --- @type Position?
+    --- @type MapPosition?
     last_position = nil,
     --- @type number
     overlay = nil,
