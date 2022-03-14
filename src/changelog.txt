@@ -2,7 +2,7 @@
 Version: 1.0.2
 Date: ????
   Bugfixes:
-    - Fixed a crash when iterating a reactor with a fluid energy source
+    - Fixed a crash when iterating a reactor with a fluid energy source (#8)
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.1
 Date: 2022-02-27
