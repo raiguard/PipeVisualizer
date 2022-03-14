@@ -49,9 +49,10 @@ local function walk_fluid_system(to_walk, entities, fluid_system_id)
     if not entities[unit_number] then
       entities[unit_number] = entity
       local fluidbox = entity.fluidbox
-      for fluidbox_index, fluidbox_neighbours in pairs(entity.neighbours) do
+      for fluidbox_index = 1, #fluidbox do
         if fluidbox.get_fluid_system_id(fluidbox_index) == fluid_system_id then
-          for _, neighbour in pairs(fluidbox_neighbours) do
+          for _, connection in pairs(fluidbox.get_connections(fluidbox_index)) do
+            local neighbour = connection.owner
             to_walk_next[neighbour.unit_number] = neighbour
           end
         end

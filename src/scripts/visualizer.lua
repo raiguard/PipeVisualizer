@@ -163,7 +163,7 @@ function visualizer.draw_entities(player, player_table, entities, options)
       --- @type number?
       local fluid_system_id = nil
       local this_entity_objects = {}
-      for fluidbox_index, fluidbox_neighbours in pairs(entity.neighbours) do
+      for fluidbox_index = 1, #fluidbox do
         local this_fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
         if this_fluid_system_id and (not fluid_system_ids or fluid_system_ids[this_fluid_system_id]) then
           fluid_system_id = this_fluid_system_id
@@ -200,7 +200,8 @@ function visualizer.draw_entities(player, player_table, entities, options)
           local entity_direction = entity.direction
           local entity_position = entity.position
 
-          for _, neighbour in pairs(fluidbox_neighbours) do
+          for _, connection in pairs(fluidbox.get_connections(fluidbox_index)) do
+            local neighbour = connection.owner
             local neighbour_position = neighbour.position
 
             local is_southeast = neighbour_position.x > (entity_position.x + 0.99)

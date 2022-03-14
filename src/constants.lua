@@ -20,6 +20,7 @@ constants.entity_types = {
   "pipe",
   "pipe-to-ground",
   "pump",
+  "reactor",
   "rocket-silo",
   "storage-tank",
 }
@@ -67,6 +68,7 @@ constants.type_to_shape = {
   ["pipe"] = "circle",
   ["pipe-to-ground"] = "circle",
   ["pump"] = "circle",
+  ["reactor"] = "square",
   ["rocket-silo"] = "circle",
   ["storage-tank"] = "diamond",
 }
