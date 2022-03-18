@@ -14,20 +14,28 @@ data:extend({
   {
     type = "shortcut",
     name = "pv-toggle-hover",
-    icon = { filename = "__PipeVisualizer__/graphics/hover-dark-x32.png", size = 32, flags = { "gui-icon" } },
-    disabled_icon = {
+    icon = {
       filename = "__PipeVisualizer__/graphics/hover-dark-x32.png",
       size = 32,
+      mipmap_count = 2,
+      flags = { "gui-icon" },
+    },
+    disabled_icon = {
+      filename = "__PipeVisualizer__/graphics/hover-light-x32.png",
+      size = 32,
+      mipmap_count = 2,
       flags = { "gui-icon" },
     },
     small_icon = {
       filename = "__PipeVisualizer__/graphics/hover-dark-x24.png",
       size = 24,
+      mipmap_count = 2,
       flags = { "gui-icon" },
     },
     disabled_small_icon = {
-      filename = "__PipeVisualizer__/graphics/hover-dark-x24.png",
+      filename = "__PipeVisualizer__/graphics/hover-light-x24.png",
       size = 24,
+      mipmap_count = 2,
       flags = { "gui-icon" },
     },
     associated_control_input = "pv-toggle-hover",
@@ -37,20 +45,28 @@ data:extend({
   {
     type = "shortcut",
     name = "pv-toggle-overlay",
-    icon = { filename = "__PipeVisualizer__/graphics/overlay-dark-x32.png", size = 32, flags = { "gui-icon" } },
-    disabled_icon = {
+    icon = {
       filename = "__PipeVisualizer__/graphics/overlay-dark-x32.png",
       size = 32,
+      mipmap_count = 2,
+      flags = { "gui-icon" },
+    },
+    disabled_icon = {
+      filename = "__PipeVisualizer__/graphics/overlay-light-x32.png",
+      size = 32,
+      mipmap_count = 2,
       flags = { "gui-icon" },
     },
     small_icon = {
       filename = "__PipeVisualizer__/graphics/overlay-dark-x24.png",
       size = 24,
+      mipmap_count = 2,
       flags = { "gui-icon" },
     },
     disabled_small_icon = {
-      filename = "__PipeVisualizer__/graphics/overlay-dark-x24.png",
+      filename = "__PipeVisualizer__/graphics/overlay-light-x24.png",
       size = 24,
+      mipmap_count = 2,
       flags = { "gui-icon" },
     },
     associated_control_input = "pv-toggle-overlay",
