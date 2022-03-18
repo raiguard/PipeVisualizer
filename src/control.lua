@@ -168,12 +168,14 @@ event.on_selected_entity_changed(function(e)
       local fluidbox = selected.fluidbox
       for fluidbox_index = 1, #fluidbox do
         local fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
-        fluid_system_ids[fluid_system_id] = true
-        local to_walk = table.map(fluidbox.get_connections(fluidbox_index), function(fluidbox)
-          return fluidbox.owner
-        end)
-        while next(to_walk) do
-          to_walk = walk_fluid_system(to_walk, entities, fluid_system_id)
+        if fluid_system_id then
+          fluid_system_ids[fluid_system_id] = true
+          local to_walk = table.map(fluidbox.get_connections(fluidbox_index), function(fluidbox)
+            return fluidbox.owner
+          end)
+          while next(to_walk) do
+            to_walk = walk_fluid_system(to_walk, entities, fluid_system_id)
+          end
         end
       end
       visualizer.draw_entities(player, player_table, entities, { fluid_system_ids = fluid_system_ids })
