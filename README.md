@@ -20,4 +20,4 @@ Enable the hover-over visualizer to draw fluid systems when you hover over them:
 
 ## Credits
 
-Shortcut icons were sourced from [icons8.com](https://icons8.com).
+Shortcut icons were sourced from [Font Awesome Free](https://fontawesome.com/search?m=free) under the [CC-BY-4.0 license](https://creativecommons.org/licenses/by/4.0/).
