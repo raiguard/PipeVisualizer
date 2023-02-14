@@ -30,18 +30,21 @@ function visualizer.create(player, player_table)
   -- GUI
   local frame_flow = mod_gui.get_frame_flow(player)
   if frame_flow and frame_flow.valid and not frame_flow.pv_window then
-    frame_flow.add({ type = "frame", name = "pv_window", style = mod_gui.frame_style, caption = { "gui.pv-mode" } }).add({
-      type = "frame",
-      style = "inside_shallow_frame_with_padding",
-    }).add({
-      type = "switch",
-      name = "pv_mode_switch",
-      left_label_caption = { "gui.pv-fluid" },
-      right_label_caption = { "gui.pv-system" },
-      left_label_tooltip = { "gui.pv-fluid-description" },
-      right_label_tooltip = { "gui.pv-system-description" },
-      switch_state = player_table.mode == constants.modes.fluid and "left" or "right",
-    })
+    frame_flow
+      .add({ type = "frame", name = "pv_window", style = mod_gui.frame_style, caption = { "gui.pv-mode" } })
+      .add({
+        type = "frame",
+        style = "inside_shallow_frame_with_padding",
+      })
+      .add({
+        type = "switch",
+        name = "pv_mode_switch",
+        left_label_caption = { "gui.pv-fluid" },
+        right_label_caption = { "gui.pv-system" },
+        left_label_tooltip = { "gui.pv-fluid-description" },
+        right_label_tooltip = { "gui.pv-system-description" },
+        switch_state = player_table.mode == constants.modes.fluid and "left" or "right",
+      })
   end
 end
 
@@ -303,10 +306,10 @@ function visualizer.draw_entities(player, player_table, entities, options)
         })
       )
     elseif shape_type == "diode" then
-      local diode_vertices = constants.diode_vertices[entity.direction];
+      local diode_vertices = constants.diode_vertices[entity.direction]
       local triangle_vertices = {}
       for _, v in ipairs(diode_vertices.triangle_vertices) do
-        table.insert(triangle_vertices, {target = entity, target_offset = v.target_offset})
+        table.insert(triangle_vertices, { target = entity, target_offset = v.target_offset })
       end
 
       table.insert(
