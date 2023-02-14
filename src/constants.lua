@@ -67,10 +67,49 @@ constants.type_to_shape = {
   ["offshore-pump"] = "square",
   ["pipe"] = "circle",
   ["pipe-to-ground"] = "circle",
-  ["pump"] = "circle",
+  ["pump"] = "diode",
   ["reactor"] = "square",
   ["rocket-silo"] = "circle",
   ["storage-tank"] = "diamond",
+}
+
+constants.diode_vertices = {
+  [defines.direction.north] = {
+    triangle_vertices = {
+      { target_offset = { -0.28, 0.28 } },
+      { target_offset = { 0, -0.28 } },
+      { target_offset = { 0.28, 0.28 } }
+    },
+    rectangle_left_top_offset = { -0.28, -0.1 },
+    rectangle_right_bottom_offset = { 0.28, -0.2 },
+  },
+  [defines.direction.east] = {
+    triangle_vertices = {
+      { target_offset = { -0.28, -0.28 } },
+      { target_offset = { 0.28, 0 } },
+      { target_offset = { -0.28, 0.28 } }
+    },
+    rectangle_left_top_offset = { 0.1, 0.28 },
+    rectangle_right_bottom_offset = { 0.2, -0.28 },
+  },
+  [defines.direction.south] = {
+    triangle_vertices = {
+      { target_offset = { 0.28, -0.28 } },
+      { target_offset = { 0, 0.28 } },
+      { target_offset = { -0.28, -0.28 } }
+    },
+    rectangle_left_top_offset = { -0.28, 0.1 },
+    rectangle_right_bottom_offset = { 0.28, 0.2 },
+  },
+  [defines.direction.west] = {
+    triangle_vertices = {
+      { target_offset = { 0.28, 0.28 } },
+      { target_offset = { -0.28, 0 } },
+      { target_offset = { 0.28, -0.28 } }
+    },
+    rectangle_left_top_offset = { -0.2, 0.28 },
+    rectangle_right_bottom_offset = { -0.1, -0.28 },
+  },
 }
 
 return constants

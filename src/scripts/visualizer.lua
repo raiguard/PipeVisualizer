@@ -302,6 +302,38 @@ function visualizer.draw_entities(player, player_table, entities, options)
           players = { player.index },
         })
       )
+    elseif shape_type == "diode" then
+      local diode_vertices = constants.diode_vertices[entity.direction];
+      local triangle_vertices = {}
+      for _, v in ipairs(diode_vertices.triangle_vertices) do
+        table.insert(triangle_vertices, {target = entity, target_offset = v.target_offset})
+      end
+
+      table.insert(
+        entity_objects[unit_number],
+        rendering.draw_polygon({
+          color = color,
+          vertices = triangle_vertices,
+          filled = true,
+          target = entity,
+          surface = entity.surface,
+          players = { player.index },
+        })
+      )
+      table.insert(
+        entity_objects[unit_number],
+        rendering.draw_rectangle({
+          left_top = entity,
+          left_top_offset = diode_vertices.rectangle_left_top_offset,
+          right_bottom = entity,
+          right_bottom_offset = diode_vertices.rectangle_right_bottom_offset,
+          color = color,
+          filled = true,
+          target = entity,
+          surface = entity.surface,
+          players = { player.index },
+        })
+      )
     end
   end
 

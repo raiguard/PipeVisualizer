@@ -2,6 +2,7 @@
 Version: 1.0.5
 Date: ????
   Changes:
+    - Pumps are now drawn with a diode shape (by nekizalb)
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.4
 Date: 2022-03-18
