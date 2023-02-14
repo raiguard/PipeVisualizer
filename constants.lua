@@ -78,7 +78,7 @@ constants.diode_vertices = {
     triangle_vertices = {
       { target_offset = { -0.28, 0.28 } },
       { target_offset = { 0, -0.28 } },
-      { target_offset = { 0.28, 0.28 } }
+      { target_offset = { 0.28, 0.28 } },
     },
     rectangle_left_top_offset = { -0.28, -0.1 },
     rectangle_right_bottom_offset = { 0.28, -0.2 },
@@ -87,7 +87,7 @@ constants.diode_vertices = {
     triangle_vertices = {
       { target_offset = { -0.28, -0.28 } },
       { target_offset = { 0.28, 0 } },
-      { target_offset = { -0.28, 0.28 } }
+      { target_offset = { -0.28, 0.28 } },
     },
     rectangle_left_top_offset = { 0.1, 0.28 },
     rectangle_right_bottom_offset = { 0.2, -0.28 },
@@ -96,7 +96,7 @@ constants.diode_vertices = {
     triangle_vertices = {
       { target_offset = { 0.28, -0.28 } },
       { target_offset = { 0, 0.28 } },
-      { target_offset = { -0.28, -0.28 } }
+      { target_offset = { -0.28, -0.28 } },
     },
     rectangle_left_top_offset = { -0.28, 0.1 },
     rectangle_right_bottom_offset = { 0.28, 0.2 },
@@ -105,7 +105,7 @@ constants.diode_vertices = {
     triangle_vertices = {
       { target_offset = { 0.28, 0.28 } },
       { target_offset = { -0.28, 0 } },
-      { target_offset = { 0.28, -0.28 } }
+      { target_offset = { 0.28, -0.28 } },
     },
     rectangle_left_top_offset = { -0.2, 0.28 },
     rectangle_right_bottom_offset = { -0.1, -0.28 },

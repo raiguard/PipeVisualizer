@@ -1,9 +1,9 @@
-local event = require("__flib__.event")
-local table = require("__flib__.table")
-local vivid = require("lib.vivid")
+local event = require("__flib__/event")
+local table = require("__flib__/table")
+local vivid = require("__PipeVisualizer__/vivid")
 
-local constants = require("constants")
-local visualizer = require("scripts.visualizer")
+local constants = require("__PipeVisualizer__/constants")
+local visualizer = require("__PipeVisualizer__/scripts/visualizer")
 
 --- @param player_index number
 local function init_player(player_index)

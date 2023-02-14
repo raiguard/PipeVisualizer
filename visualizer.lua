@@ -1,9 +1,9 @@
-local area = require("__flib__.area")
-local direction = require("__flib__.direction")
-local table = require("__flib__.table")
-local mod_gui = require("__core__.lualib.mod-gui")
+local area = require("__flib__/area")
+local direction = require("__flib__/direction")
+local table = require("__flib__/table")
+local mod_gui = require("__core__/lualib/mod-gui")
 
-local constants = require("constants")
+local constants = require("__PipeVisualizer__/constants")
 
 local visualizer = {}
 
