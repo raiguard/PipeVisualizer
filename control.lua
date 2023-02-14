@@ -1,4 +1,3 @@
-local event = require("__flib__/event")
 local table = require("__flib__/table")
 local vivid = require("__PipeVisualizer__/vivid")
 
@@ -84,7 +83,7 @@ local function toggle_overlay(player, player_table)
   player.set_shortcut_toggled("pv-toggle-overlay", player_table.enabled)
 end
 
-event.on_init(function()
+script.on_init(function()
   --- @type table<number, PlayerTable>
   global.players = {}
 
@@ -95,27 +94,27 @@ event.on_init(function()
   end
 end)
 
-event.on_configuration_changed(function()
+script.on_configuration_changed(function()
   generate_fluid_colors()
 end)
 
-event.on_player_created(function(e)
+script.on_event(defines.events.on_player_created, function(e)
   init_player(e.player_index)
 end)
 
-event.register("pv-toggle-hover", function(e)
+script.on_event("pv-toggle-hover", function(e)
   local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
   toggle_hover(player, player_table)
 end)
 
-event.register("pv-toggle-overlay", function(e)
+script.on_event("pv-toggle-overlay", function(e)
   local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
   toggle_overlay(player, player_table)
 end)
 
-event.on_lua_shortcut(function(e)
+script.on_event(defines.events.on_lua_shortcut, function(e)
   local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
   if e.prototype_name == "pv-toggle-hover" then
@@ -125,7 +124,7 @@ event.on_lua_shortcut(function(e)
   end
 end)
 
-event.on_player_changed_position(function(e)
+script.on_event(defines.events.on_player_changed_position, function(e)
   local player = game.get_player(e.player_index)
   local player_table = global.players[e.player_index]
   if player_table and player_table.enabled then
@@ -141,7 +140,7 @@ event.on_player_changed_position(function(e)
   end
 end)
 
-event.on_selected_entity_changed(function(e)
+script.on_event(defines.events.on_selected_entity_changed, function(e)
   local player_table = global.players[e.player_index]
   if not player_table or not player_table.enabled then
     local player = game.get_player(e.player_index)
@@ -186,7 +185,7 @@ event.on_selected_entity_changed(function(e)
   end
 end)
 
-event.on_gui_switch_state_changed(function(e)
+script.on_event(defines.events.on_gui_switch_state_changed, function(e)
   local player_table = global.players[e.player_index]
   if player_table and player_table.enabled then
     local element = e.element
