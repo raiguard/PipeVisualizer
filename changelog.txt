@@ -3,6 +3,8 @@ Version: 1.0.5
 Date: ????
   Changes:
     - Pumps are now drawn with a diode shape (by nekizalb)
+  Bugfixes:
+    - Fixed blue fluid colors being distorted to similar shaded of cyan
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.4
 Date: 2022-03-18
