@@ -24,6 +24,8 @@
 -- - Added logic to getColorArgs() to handle Factorio RGB tables
 -- - Removed unused math_asan
 
+--- @diagnostic disable
+
 local vivid = {}
 
 local math_min = math.min
@@ -92,6 +94,7 @@ function vivid.RGBtoHSL(...)
   return h, s, l, a
 end
 
+--- @return float,float,float,float
 function vivid.RGBtoHSV(...)
   local r, g, b, a = getColorArgs(...)
 
@@ -222,6 +225,7 @@ function vivid.HSLtoRGB(...)
   return r, g, b, a
 end
 
+--- @return float,float,float,float
 function vivid.HSVtoRGB(...)
   local h, s, v, a = getColorArgs(...)
 

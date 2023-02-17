@@ -1,4 +1,4 @@
-local area = require("__flib__/area")
+local bounding_box = require("__flib__/bounding-box")
 local direction = require("__flib__/direction")
 local table = require("__flib__/table")
 local mod_gui = require("__core__/lualib/mod-gui")
@@ -10,20 +10,19 @@ local visualizer = {}
 --- @param player LuaPlayer
 --- @param player_table PlayerTable
 function visualizer.create(player, player_table)
+  local opacity = player.mod_settings["pv-overlay-opacity"].value --[[@as float]]
   player_table.enabled = true
   player_table.entity_objects = {}
   player_table.overlay = rendering.draw_rectangle({
     left_top = { x = 0, y = 0 },
     right_bottom = { x = 0, y = 0 },
     filled = true,
-    color = { a = player.mod_settings["pv-overlay-opacity"].value },
+    color = { a = opacity },
     surface = player.surface,
     players = { player.index },
   })
-  player_table.overlay_area = area.from_dimensions(
-    { height = constants.max_viewable_radius * 2, width = constants.max_viewable_radius * 2 },
-    player.position
-  )
+  player_table.overlay_area =
+    bounding_box.from_dimensions(player.position, constants.max_viewable_radius * 2, constants.max_viewable_radius * 2)
 
   visualizer.update(player, player_table)
 
@@ -57,14 +56,14 @@ function visualizer.update(player, player_table)
   }
 
   -- Update overlay
-  local overlay_area = area.center_on(player_table.overlay_area, player.position)
+  local overlay_area = bounding_box.recenter_on(player_table.overlay_area, player.position)
   rendering.set_left_top(player_table.overlay, overlay_area.left_top)
   rendering.set_right_bottom(player_table.overlay, overlay_area.right_bottom)
 
   -- Compute areas to search based on movement
   local areas = {}
-  if player_table.last_position then
-    local last_position = player_table.last_position
+  local last_position = player_table.last_position
+  if last_position then
     --- @type MapPosition
     local delta = {
       x = player_position.x - last_position.x,
@@ -135,12 +134,12 @@ function visualizer.update(player, player_table)
 end
 
 --- @class ShapeData
---- @field fluid_system_id number
+--- @field fluid_system_id uint?
 --- @field entity LuaEntity
 
 --- @class DrawEntitiesOptions
 --- @field is_overlay boolean
---- @field fluid_system_ids number[]
+--- @field fluid_system_ids uint[]
 
 --- @param player LuaPlayer
 --- @param player_table PlayerTable
@@ -148,7 +147,7 @@ end
 --- @param options DrawEntitiesOptions
 function visualizer.draw_entities(player, player_table, entities, options)
   local entity_objects = player_table.entity_objects
-  --- @type table<number, ShapeData>
+  --- @type table<uint, ShapeData>
   local shapes_to_draw = {}
   local overlay_area = player_table.overlay_area
   local fluid_colors = global.fluid_colors
@@ -161,12 +160,13 @@ function visualizer.draw_entities(player, player_table, entities, options)
 
   for _, entity in pairs(entities) do
     local fluidbox = entity.fluidbox
-    local unit_number = entity.unit_number
+    local unit_number = entity.unit_number --[[@as uint]]
     if fluidbox and #fluidbox > 0 and not entity_objects[unit_number] then
-      --- @type number?
+      --- @type uint?
       local fluid_system_id = nil
       local this_entity_objects = {}
       for fluidbox_index = 1, #fluidbox do
+        --- @cast fluidbox_index uint
         local this_fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
         if this_fluid_system_id and (not fluid_system_ids or fluid_system_ids[this_fluid_system_id]) then
           fluid_system_id = this_fluid_system_id
@@ -242,7 +242,7 @@ function visualizer.draw_entities(player, player_table, entities, options)
             elseif
               options.is_overlay -- Don't do this if we're using hover mode
               and is_underground_connection
-              and not area.contains_position(overlay_area, neighbour_position)
+              and not bounding_box.contains_position(overlay_area, neighbour_position)
             then
               -- Iterate the neighbour to draw the underground connection line
               table.insert(entities, neighbour)

@@ -26,7 +26,7 @@ constants.entity_types = {
   "storage-tank",
 }
 
---- @class constants.modes
+--- @enum VisualizationMode
 constants.modes = {
   fluid = 1,
   system = 2,
