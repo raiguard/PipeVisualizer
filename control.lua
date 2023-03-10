@@ -159,7 +159,7 @@ end)
 
 script.on_event(defines.events.on_selected_entity_changed, function(e)
   local player_table = global.players[e.player_index]
-  if not player_table.enabled then
+  if player_table.enabled then
     return
   end
   local player = game.get_player(e.player_index)
