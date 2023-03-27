@@ -202,8 +202,22 @@ function visualizer.draw_entities(player, player_table, entities, options)
 
           local entity_direction = entity.direction
           local entity_position = entity.position
+          local this_fluidbox_production_type = fluidbox.get_prototype(fluidbox_index).production_type
 
           for _, connection in pairs(fluidbox.get_connections(fluidbox_index)) do
+            local has_input = this_fluidbox_production_type ~= "output"
+            if not has_input then
+              for i = 1, #connection do
+                --- @cast i uint
+                if connection.get_prototype(i).production_type ~= "output" then
+                  has_input = true
+                  break
+                end
+              end
+            end
+            if not has_input then
+              goto continue
+            end
             local neighbour = connection.owner
             local neighbour_position = neighbour.position
 
@@ -247,6 +261,7 @@ function visualizer.draw_entities(player, player_table, entities, options)
               -- Iterate the neighbour to draw the underground connection line
               table.insert(entities, neighbour)
             end
+            ::continue::
           end
         end
       end
