@@ -92,6 +92,9 @@ end
 --- @param self Overlay
 local function destroy_overlay(self)
   rendering.destroy(self.background)
+  for _, id in pairs(self.entity_objects) do
+    rendering.destroy(id)
+  end
   global.overlay[self.player.index] = nil
 end
 
