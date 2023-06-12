@@ -51,6 +51,9 @@ end
 --- @param entity LuaEntity
 --- @param colors table<uint, Color>
 local function visualize_entity(self, entity, colors)
+  if self.entity_objects[entity.unit_number] then
+    return
+  end
   --- @type RenderObjectID[]
   local objects = {}
   local fluidbox = entity.fluidbox
@@ -199,6 +202,7 @@ local function create_overlay(player)
     surface = player.surface,
     players = { player },
   })
+  --- @type Overlay
   local self = {
     background = background,
     entity_objects = {},
