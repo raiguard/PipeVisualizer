@@ -10,10 +10,9 @@ local overlay_size = 220 + 5
 
 --- @class Overlay
 --- @field background RenderObjectID
---- @field box BoundingBox
+--- @field entity_objects RenderObjectID[]
 --- @field last_position MapPosition
 --- @field player LuaPlayer
---- @field entity_objects RenderObjectID[]
 
 --- @param self Overlay
 --- @param entity LuaEntity
@@ -48,9 +47,9 @@ local function update_overlay(self)
     return
   end
   self.last_position = position
-  self.box = flib_bounding_box.from_dimensions(position, overlay_size, overlay_size)
-  rendering.set_left_top(self.background, self.box.left_top)
-  rendering.set_right_bottom(self.background, self.box.right_bottom)
+  local box = flib_bounding_box.from_dimensions(position, overlay_size, overlay_size)
+  rendering.set_left_top(self.background, box.left_top)
+  rendering.set_right_bottom(self.background, box.right_bottom)
 
   for _, id in pairs(self.entity_objects) do
     rendering.destroy(id)
@@ -58,7 +57,7 @@ local function update_overlay(self)
   self.entity_objects = {}
 
   local entities = self.player.surface.find_entities_filtered({
-    area = self.box,
+    area = box,
     force = self.player.force,
     type = { "pipe", "pipe-to-ground", "storage-tank", "infinity-pipe" },
   })
@@ -84,7 +83,6 @@ local function create_overlay(player)
   })
   global.overlay[player.index] = {
     background = background,
-    box = box,
     entity_objects = {},
     last_position = position,
     player = player,
