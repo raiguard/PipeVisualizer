@@ -14,6 +14,38 @@ local overlay_size = 220 + 5
 --- @field last_position MapPosition
 --- @field player LuaPlayer
 
+--- @param fluidbox LuaFluidBox
+--- @param index uint
+--- @param colors table<uint, Color>
+--- @return Color
+local function get_color(fluidbox, index, colors)
+  local id = fluidbox.get_fluid_system_id(index)
+  local color = colors[id]
+  if color then
+    return color
+  end
+
+  local fluid = fluidbox[index]
+  local filter = fluidbox.get_filter(index)
+  --- @type string?
+  local fluid_name
+  if fluid then
+    fluid_name = fluid.name
+  elseif filter then
+    fluid_name = filter.name
+  else
+    fluid_name = fluidbox.get_locked_fluid(index)
+  end
+
+  if fluid_name then
+    local color = global.fluid_colors[fluid_name]
+    colors[id] = color
+    return color
+  end
+
+  return { r = 0.3, g = 0.3, b = 0.3 }
+end
+
 --- @param self Overlay
 --- @param entity LuaEntity
 --- @param colors table<uint, Color>
@@ -21,21 +53,25 @@ local function visualize_entity(self, entity, colors)
   local fluidbox = entity.fluidbox
   for i = 1, #fluidbox do
     --- @cast i uint
-    local connection = fluidbox[i]
-    if connection then
-      local id = fluidbox.get_fluid_system_id(i)
-      local color = colors[id]
-      if not color then
-        color = global.fluid_colors[connection.name]
-        colors[id] = color
+    local color = get_color(fluidbox, i, colors)
+    self.entity_objects[#self.entity_objects + 1] = rendering.draw_circle({
+      color = color,
+      filled = true,
+      radius = 0.15,
+      surface = entity.surface,
+      target = entity,
+    })
+
+    for _, connection in pairs(fluidbox.get_connections(i)) do
+      if not flib_position.le(connection.owner.position, entity.position) then
+        self.entity_objects[#self.entity_objects + 1] = rendering.draw_line({
+          color = color,
+          width = 2,
+          surface = entity.surface,
+          from = entity,
+          to = connection.owner,
+        })
       end
-      self.entity_objects[#self.entity_objects + 1] = rendering.draw_circle({
-        color = color,
-        filled = true,
-        radius = 0.2,
-        surface = entity.surface,
-        target = entity.position,
-      })
     end
   end
 end
@@ -59,7 +95,19 @@ local function update_overlay(self)
   local entities = self.player.surface.find_entities_filtered({
     area = box,
     force = self.player.force,
-    type = { "pipe", "pipe-to-ground", "storage-tank", "infinity-pipe" },
+    type = {
+      "assembling-machine",
+      "boiler",
+      "furnace",
+      "generator",
+      "infinity-pipe",
+      "pipe",
+      "pipe-to-ground",
+      "pump",
+      "pump-to-ground",
+      "rocket-silo",
+      "storage-tank",
+    },
   })
   local colors = {}
   for _, entity in pairs(entities) do
@@ -81,12 +129,14 @@ local function create_overlay(player)
     surface = player.surface,
     players = { player },
   })
-  global.overlay[player.index] = {
+  local self = {
     background = background,
     entity_objects = {},
-    last_position = position,
+    last_position = { x = 0, y = 0 },
     player = player,
   }
+  global.overlay[player.index] = self
+  update_overlay(self)
 end
 
 --- @param self Overlay
