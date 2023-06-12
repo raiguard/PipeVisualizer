@@ -1,5 +1,11 @@
-local table = require("__flib__/table")
-local vivid = require("__PipeVisualizer__/vivid")
+local handler = require("__core__/lualib/event_handler")
+
+handler.add_libraries({
+  require("__PipeVisualizer__/scripts/colors"),
+  require("__PipeVisualizer__/scripts/overlay"),
+})
+
+local flib_table = require("__flib__/table")
 
 local constants = require("__PipeVisualizer__/constants")
 local visualizer = require("__PipeVisualizer__/visualizer")
@@ -84,145 +90,130 @@ local function toggle_overlay(player, player_table)
   player.set_shortcut_toggled("pv-toggle-overlay", player_table.enabled)
 end
 
-script.on_init(function()
-  --- @type table<number, PlayerTable>
-  global.players = {}
+-- script.on_event(defines.events.on_player_created, function(e)
+--   init_player(e.player_index)
+-- end)
 
-  generate_fluid_colors()
+-- script.on_event("pv-toggle-hover", function(e)
+--   local player = game.get_player(e.player_index)
+--   if not player then
+--     return
+--   end
+--   local player_table = global.players[e.player_index]
+--   toggle_hover(player, player_table)
+-- end)
 
-  for player_index in pairs(game.players) do
-    init_player(player_index --[[@as uint]])
-  end
-end)
+-- script.on_event("pv-toggle-overlay", function(e)
+--   local player = game.get_player(e.player_index)
+--   if not player then
+--     return
+--   end
+--   local player_table = global.players[e.player_index]
+--   toggle_overlay(player, player_table)
+-- end)
 
-script.on_configuration_changed(function()
-  generate_fluid_colors()
-end)
+-- script.on_event(defines.events.on_lua_shortcut, function(e)
+--   local player = game.get_player(e.player_index)
+--   if not player then
+--     return
+--   end
+--   local player_table = global.players[e.player_index]
+--   if e.prototype_name == "pv-toggle-hover" then
+--     toggle_hover(player, player_table)
+--   elseif e.prototype_name == "pv-toggle-overlay" then
+--     toggle_overlay(player, player_table)
+--   end
+-- end)
 
-script.on_event(defines.events.on_player_created, function(e)
-  init_player(e.player_index)
-end)
+-- script.on_event(defines.events.on_player_changed_position, function(e)
+--   local player = game.get_player(e.player_index)
+--   if not player then
+--     return
+--   end
+--   local player_table = global.players[e.player_index]
+--   if not player_table or not player_table.enabled then
+--     return
+--   end
+--   local last_position = player_table.last_position
+--   if not last_position then
+--     return
+--   end
+--   local position = player.position
+--   local floored_position = {
+--     x = math.floor(position.x),
+--     y = math.floor(position.y),
+--   }
+--   if floored_position.x ~= last_position.x or floored_position.y ~= last_position.y then
+--     visualizer.update(player, player_table)
+--   end
+-- end)
 
-script.on_event("pv-toggle-hover", function(e)
-  local player = game.get_player(e.player_index)
-  if not player then
-    return
-  end
-  local player_table = global.players[e.player_index]
-  toggle_hover(player, player_table)
-end)
+-- script.on_event(defines.events.on_selected_entity_changed, function(e)
+--   local player_table = global.players[e.player_index]
+--   if player_table.enabled then
+--     return
+--   end
+--   local player = game.get_player(e.player_index)
+--   if not player then
+--     return
+--   end
 
-script.on_event("pv-toggle-overlay", function(e)
-  local player = game.get_player(e.player_index)
-  if not player then
-    return
-  end
-  local player_table = global.players[e.player_index]
-  toggle_overlay(player, player_table)
-end)
+--   local selected = player.selected
+--   if selected and constants.type_to_shape[selected.type] then
+--     if player_table.entity_objects[selected.unit_number] then
+--       return
+--     end
+--     local fluidbox = selected.fluidbox
+--     if not fluidbox or #fluidbox == 0 then
+--       return
+--     end
+--     if player_table.hovered then
+--       visualizer.destroy(player, player_table)
+--     end
+--     if not player_table.hover_enabled then
+--       return
+--     end
+--     player_table.hovered = true
 
-script.on_event(defines.events.on_lua_shortcut, function(e)
-  local player = game.get_player(e.player_index)
-  if not player then
-    return
-  end
-  local player_table = global.players[e.player_index]
-  if e.prototype_name == "pv-toggle-hover" then
-    toggle_hover(player, player_table)
-  elseif e.prototype_name == "pv-toggle-overlay" then
-    toggle_overlay(player, player_table)
-  end
-end)
+--     -- Iterate all entities in each fluid system
+--     local entities = {}
+--     local fluid_system_ids = {}
+--     local fluidbox = selected.fluidbox
+--     for fluidbox_index = 1, #fluidbox do
+--       --- @cast fluidbox_index uint
+--       local fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
+--       if fluid_system_id then
+--         fluid_system_ids[fluid_system_id] = true
+--         local to_walk = flib_table.map(fluidbox.get_connections(fluidbox_index), function(fluidbox)
+--           return fluidbox.owner
+--         end)
+--         while next(to_walk) do
+--           to_walk = walk_fluid_system(to_walk, entities, fluid_system_id)
+--         end
+--       end
+--     end
+--     visualizer.draw_entities(player, player_table, entities, { fluid_system_ids = fluid_system_ids })
+--   elseif player_table.hovered then
+--     player_table.hovered = false
+--     visualizer.destroy(player, player_table)
+--   end
+-- end)
 
-script.on_event(defines.events.on_player_changed_position, function(e)
-  local player = game.get_player(e.player_index)
-  if not player then
-    return
-  end
-  local player_table = global.players[e.player_index]
-  if not player_table or not player_table.enabled then
-    return
-  end
-  local last_position = player_table.last_position
-  if not last_position then
-    return
-  end
-  local position = player.position
-  local floored_position = {
-    x = math.floor(position.x),
-    y = math.floor(position.y),
-  }
-  if floored_position.x ~= last_position.x or floored_position.y ~= last_position.y then
-    visualizer.update(player, player_table)
-  end
-end)
+-- script.on_event(defines.events.on_gui_switch_state_changed, function(e)
+--   local player_table = global.players[e.player_index]
+--   if not player_table or not player_table.enabled then
+--     return
+--   end
+--   local element = e.element
+--   if not element or not element.valid or element.name ~= "pv_mode_switch" then
+--     return
+--   end
+--   local player = game.get_player(e.player_index)
+--   if not player then
+--     return
+--   end
 
-script.on_event(defines.events.on_selected_entity_changed, function(e)
-  local player_table = global.players[e.player_index]
-  if player_table.enabled then
-    return
-  end
-  local player = game.get_player(e.player_index)
-  if not player then
-    return
-  end
-
-  local selected = player.selected
-  if selected and constants.type_to_shape[selected.type] then
-    if player_table.entity_objects[selected.unit_number] then
-      return
-    end
-    local fluidbox = selected.fluidbox
-    if not fluidbox or #fluidbox == 0 then
-      return
-    end
-    if player_table.hovered then
-      visualizer.destroy(player, player_table)
-    end
-    if not player_table.hover_enabled then
-      return
-    end
-    player_table.hovered = true
-
-    -- Iterate all entities in each fluid system
-    local entities = {}
-    local fluid_system_ids = {}
-    local fluidbox = selected.fluidbox
-    for fluidbox_index = 1, #fluidbox do
-      --- @cast fluidbox_index uint
-      local fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
-      if fluid_system_id then
-        fluid_system_ids[fluid_system_id] = true
-        local to_walk = table.map(fluidbox.get_connections(fluidbox_index), function(fluidbox)
-          return fluidbox.owner
-        end)
-        while next(to_walk) do
-          to_walk = walk_fluid_system(to_walk, entities, fluid_system_id)
-        end
-      end
-    end
-    visualizer.draw_entities(player, player_table, entities, { fluid_system_ids = fluid_system_ids })
-  elseif player_table.hovered then
-    player_table.hovered = false
-    visualizer.destroy(player, player_table)
-  end
-end)
-
-script.on_event(defines.events.on_gui_switch_state_changed, function(e)
-  local player_table = global.players[e.player_index]
-  if not player_table or not player_table.enabled then
-    return
-  end
-  local element = e.element
-  if not element or not element.valid or element.name ~= "pv_mode_switch" then
-    return
-  end
-  local player = game.get_player(e.player_index)
-  if not player then
-    return
-  end
-
-  player_table.mode = element.switch_state == "left" and constants.modes.fluid or constants.modes.system
-  visualizer.destroy(player, player_table)
-  visualizer.create(player, player_table)
-end)
+--   player_table.mode = element.switch_state == "left" and constants.modes.fluid or constants.modes.system
+--   visualizer.destroy(player, player_table)
+--   visualizer.create(player, player_table)
+-- end)
