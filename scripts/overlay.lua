@@ -4,13 +4,14 @@ local flib_position = require("__flib__/position")
 -- In the source code, 200 is defined as the maximum viewable distance, but in reality it's around 220
 -- Map editor is 3x that, but we will ignore that for now
 -- Add five for a comfortable margin
-local overlay_size = 220 + 5
+local overlay_radius = 110 + 5
 
 --- @alias RenderObjectID uint64
+--- @alias UnitNumber uint
 
 --- @class Overlay
 --- @field background RenderObjectID
---- @field entity_objects RenderObjectID[]
+--- @field entity_objects table<UnitNumber, RenderObjectID[]>
 --- @field last_position MapPosition
 --- @field player LuaPlayer
 
@@ -50,21 +51,22 @@ end
 --- @param entity LuaEntity
 --- @param colors table<uint, Color>
 local function visualize_entity(self, entity, colors)
+  --- @type RenderObjectID[]
+  local objects = {}
   local fluidbox = entity.fluidbox
   for i = 1, #fluidbox do
     --- @cast i uint
     local color = get_color(fluidbox, i, colors)
-    self.entity_objects[#self.entity_objects + 1] = rendering.draw_circle({
+    objects[#objects + 1] = rendering.draw_circle({
       color = color,
       filled = true,
       radius = 0.15,
       surface = entity.surface,
       target = entity,
     })
-
     for _, connection in pairs(fluidbox.get_connections(i)) do
       if not flib_position.le(connection.owner.position, entity.position) then
-        self.entity_objects[#self.entity_objects + 1] = rendering.draw_line({
+        objects[#objects + 1] = rendering.draw_line({
           color = color,
           width = 2,
           surface = entity.surface,
@@ -74,26 +76,77 @@ local function visualize_entity(self, entity, colors)
       end
     end
   end
+  self.entity_objects[entity.unit_number] = objects
 end
 
 --- @param self Overlay
-local function update_overlay(self)
-  local position = flib_position.floor(self.player.position)
-  if flib_position.eq(position, self.last_position) then
-    return
+--- @param position MapPosition
+local function get_areas(self, position)
+  local last_position = self.last_position
+  if not last_position then
+    return { flib_bounding_box.from_dimensions(position, overlay_radius * 2, overlay_radius * 2) }
   end
-  self.last_position = position
-  local box = flib_bounding_box.from_dimensions(position, overlay_size, overlay_size)
-  rendering.set_left_top(self.background, box.left_top)
-  rendering.set_right_bottom(self.background, box.right_bottom)
 
-  for _, id in pairs(self.entity_objects) do
-    rendering.destroy(id)
+  local delta = flib_position.sub(position, last_position)
+  --- @type BoundingBox[]
+  local areas = {}
+
+  if delta.x < 0 then
+    table.insert(areas, {
+      left_top = {
+        x = position.x - overlay_radius,
+        y = position.y - overlay_radius,
+      },
+      right_bottom = {
+        x = last_position.x - overlay_radius,
+        y = position.y + overlay_radius,
+      },
+    })
+  elseif delta.x > 0 then
+    table.insert(areas, {
+      left_top = {
+        x = last_position.x + overlay_radius,
+        y = position.y - overlay_radius,
+      },
+      right_bottom = {
+        x = position.x + overlay_radius,
+        y = position.y + overlay_radius,
+      },
+    })
   end
-  self.entity_objects = {}
 
+  if delta.y < 0 then
+    table.insert(areas, {
+      left_top = {
+        x = position.x - overlay_radius,
+        y = position.y - overlay_radius,
+      },
+      right_bottom = {
+        x = position.x + overlay_radius,
+        y = last_position.y - overlay_radius,
+      },
+    })
+  elseif delta.y > 0 then
+    table.insert(areas, {
+      left_top = {
+        x = position.x - overlay_radius,
+        y = last_position.y + overlay_radius,
+      },
+      right_bottom = {
+        x = position.x + overlay_radius,
+        y = position.y + overlay_radius,
+      },
+    })
+  end
+
+  return areas
+end
+
+--- @param self Overlay
+--- @param area BoundingBox
+local function visualize_area(self, area)
   local entities = self.player.surface.find_entities_filtered({
-    area = box,
+    area = area,
     force = self.player.force,
     type = {
       "assembling-machine",
@@ -115,11 +168,28 @@ local function update_overlay(self)
   end
 end
 
+--- @param self Overlay
+local function update_overlay(self)
+  local position = flib_position.floor(self.player.position)
+  if self.last_position and flib_position.eq(position, self.last_position) then
+    return
+  end
+  local areas = get_areas(self, position)
+  self.last_position = position
+  local box = flib_bounding_box.from_dimensions(position, overlay_radius * 2, overlay_radius * 2)
+  rendering.set_left_top(self.background, box.left_top)
+  rendering.set_right_bottom(self.background, box.right_bottom)
+
+  for _, area in pairs(areas) do
+    visualize_area(self, area)
+  end
+end
+
 --- @param player LuaPlayer
 local function create_overlay(player)
   -- TODO: Minimize area based on current display_resolution
   local position = flib_position.floor(player.position)
-  local box = flib_bounding_box.from_dimensions(position, overlay_size, overlay_size)
+  local box = flib_bounding_box.from_dimensions(position, overlay_radius * 2, overlay_radius * 2)
   local opacity = player.mod_settings["pv-overlay-opacity"].value --[[@as float]]
   local background = rendering.draw_rectangle({
     color = { a = opacity },
@@ -132,7 +202,6 @@ local function create_overlay(player)
   local self = {
     background = background,
     entity_objects = {},
-    last_position = { x = 0, y = 0 },
     player = player,
   }
   global.overlay[player.index] = self
@@ -142,8 +211,10 @@ end
 --- @param self Overlay
 local function destroy_overlay(self)
   rendering.destroy(self.background)
-  for _, id in pairs(self.entity_objects) do
-    rendering.destroy(id)
+  for _, objects in pairs(self.entity_objects) do
+    for _, id in pairs(objects) do
+      rendering.destroy(id)
+    end
   end
   global.overlay[self.player.index] = nil
 end
