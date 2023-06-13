@@ -6,6 +6,14 @@ local flib_position = require("__flib__/position")
 -- Add five for a comfortable margin
 local overlay_radius = 110 + 5
 
+-- --- @type table<defines.direction, MapPosition>
+-- local unit_vectors = {
+--   [defines.direction.north] = { x = 0, y = -1 },
+--   [defines.direction.east] = { x = 1, y = 0 },
+--   [defines.direction.south] = { x = 0, y = 1 },
+--   [defines.direction.west] = { x = -1, y = 0 },
+-- }
+
 --- @alias RenderObjectID uint64
 --- @alias UnitNumber uint
 
@@ -54,6 +62,23 @@ local function visualize_entity(self, entity, colors)
   if self.entity_objects[entity.unit_number] then
     return
   end
+  local entity_box = entity.prototype.collision_box
+  if entity.direction - 2 % 4 == 0 then
+    entity_box = flib_bounding_box.rotate(entity_box)
+  end
+  if flib_bounding_box.width(entity_box) > 1 or flib_bounding_box.height(entity_box) > 1 then
+    entity_box = flib_bounding_box.recenter_on(entity_box, entity.position)
+    rendering.draw_rectangle({
+      color = { r = 0.8, g = 0.8 },
+      filled = false,
+      width = 2,
+      left_top = entity_box.left_top,
+      right_bottom = entity_box.right_bottom,
+      surface = entity.surface,
+      players = { self.player },
+    })
+    return
+  end
   --- @type RenderObjectID[]
   local objects = {}
   local fluidbox = entity.fluidbox
@@ -67,15 +92,33 @@ local function visualize_entity(self, entity, colors)
       surface = entity.surface,
       target = entity,
     })
+    local pipe_connections = fluidbox.get_prototype(i).pipe_connections
     for _, connection in pairs(fluidbox.get_connections(i)) do
-      if not flib_position.le(connection.owner.position, entity.position) then
-        objects[#objects + 1] = rendering.draw_line({
-          color = color,
-          width = 2,
-          surface = entity.surface,
-          from = entity,
-          to = connection.owner,
-        })
+      local owner = connection.owner
+      local connection_box = flib_bounding_box.recenter_on(owner.prototype.collision_box, owner.position)
+      if connection.owner.direction - 2 % 4 == 0 then
+        connection_box = flib_bounding_box.rotate(connection_box)
+      end
+      for _, pe in pairs(pipe_connections) do
+        local vector = pe.positions[entity.direction / 2 + 1]
+        if flib_bounding_box.contains_position(connection_box, flib_position.add(entity.position, vector)) then
+          objects[#objects + 1] = rendering.draw_line({
+            color = color,
+            width = 2,
+            surface = entity.surface,
+            from = entity,
+            to = entity,
+            to_offset = vector,
+          })
+          objects[#objects + 1] = rendering.draw_circle({
+            color = color,
+            filled = true,
+            radius = 0.15,
+            surface = entity.surface,
+            target = entity,
+            target_offset = vector,
+          })
+        end
       end
     end
   end
