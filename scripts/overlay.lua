@@ -126,6 +126,28 @@ local function get_dimensions(player)
   return resolution
 end
 
+--- @type table<string, Color>
+local box_colors = {
+  ["assembling-machine"] = { r = 1, g = 1 },
+  ["boiler"] = { r = 1, g = 1 },
+  ["fluid-turret"] = { r = 1 },
+  ["furnace"] = { r = 1, g = 1 },
+  ["generator"] = { r = 1, g = 1 },
+  ["infinity-pipe"] = { r = 1, g = 1 },
+  ["inserter"] = { r = 1, g = 1 },
+  ["lab"] = { r = 1, g = 1 },
+  ["loader"] = { r = 1, g = 1 },
+  ["loader-1x1"] = { r = 1, g = 1 },
+  ["mining-drill"] = { r = 1, g = 1 },
+  ["offshore-pump"] = { g = 1 },
+  ["pipe"] = { r = 1, g = 1 },
+  ["pipe-to-ground"] = { r = 1, g = 1 },
+  ["pump"] = { g = 1 },
+  ["reactor"] = { r = 1, g = 1 },
+  ["rocket-silo"] = { r = 1, g = 1 },
+  ["storage-tank"] = { r = 1, b = 1 },
+}
+
 --- @param self Overlay
 --- @param entity LuaEntity
 --- @param colors table<uint, Color>
@@ -134,24 +156,25 @@ local function visualize_entity(self, entity, colors)
     return
   end
   local entity_box = entity.prototype.collision_box
-  if entity.direction - 2 % 4 == 0 then
+  if (entity.direction - 2) % 4 == 0 then
     entity_box = flib_bounding_box.rotate(entity_box)
   end
+  --- @type RenderObjectID[]
+  local objects = {}
   if flib_bounding_box.width(entity_box) > 1 or flib_bounding_box.height(entity_box) > 1 then
     entity_box = flib_bounding_box.recenter_on(entity_box, entity.position)
-    rendering.draw_rectangle({
-      color = { r = 0.8, g = 0.8 },
+    objects[#objects + 1] = rendering.draw_rectangle({
+      color = box_colors[entity.type],
       filled = false,
-      width = 2,
+      width = 1,
       left_top = entity_box.left_top,
       right_bottom = entity_box.right_bottom,
       surface = entity.surface,
       players = { self.player },
     })
+    self.entity_objects[entity.unit_number] = objects
     return
   end
-  --- @type RenderObjectID[]
-  local objects = {}
   local fluidbox = entity.fluidbox
   for i = 1, #fluidbox do
     --- @cast i uint
@@ -167,7 +190,7 @@ local function visualize_entity(self, entity, colors)
     for _, connection in pairs(fluidbox.get_connections(i)) do
       local owner = connection.owner
       local connection_box = flib_bounding_box.recenter_on(owner.prototype.collision_box, owner.position)
-      if connection.owner.direction - 2 % 4 == 0 then
+      if (connection.owner.direction - 2) % 4 == 0 then
         connection_box = flib_bounding_box.rotate(connection_box)
       end
       for _, pe in pairs(pipe_connections) do
