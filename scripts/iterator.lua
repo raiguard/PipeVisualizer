@@ -125,9 +125,9 @@ local function iterate_entity(iterator, entity)
   iterator.completed[entity.unit_number] = true
 end
 
-local entities_per_tick = 10
 --- @param iterator Iterator
-local function iterate(iterator)
+--- @param entities_per_tick integer
+local function iterate(iterator, entities_per_tick)
   for _ = 1, entities_per_tick do
     local entity = flib_queue.pop_front(iterator.queue)
     if not entity then
@@ -190,9 +190,10 @@ local function on_tick()
   if not global.iterator then
     return
   end
+  local entities_per_tick = game.is_multiplayer() and 5 or 10
   for _, iterators in pairs(global.iterator) do
     for _, iterator in pairs(iterators) do
-      iterate(iterator)
+      iterate(iterator, entities_per_tick)
     end
   end
 end
