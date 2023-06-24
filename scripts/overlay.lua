@@ -148,6 +148,7 @@ local function update_overlay(self)
 end
 
 --- @param player LuaPlayer
+--- @return Overlay
 local function create_overlay(player)
   local opacity = player.mod_settings["pv-overlay-opacity"].value --[[@as float]]
   local background = rendering.draw_rectangle({
@@ -166,7 +167,7 @@ local function create_overlay(player)
     player = player,
   }
   global.overlay[player.index] = self
-  update_overlay(self)
+  return self
 end
 
 --- @param self Overlay
@@ -203,7 +204,9 @@ local function on_toggle_overlay(e)
   if self then
     destroy_overlay(self)
   else
-    create_overlay(player)
+    local overlay = create_overlay(player)
+    iterator.bring_all_to_front(player)
+    update_overlay(overlay)
   end
   player.set_shortcut_toggled("pv-toggle-overlay", global.overlay[e.player_index] ~= nil)
 end

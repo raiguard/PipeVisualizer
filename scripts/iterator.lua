@@ -163,6 +163,27 @@ local function clear_all(player)
   end
 end
 
+--- @param iterator Iterator
+local function bring_to_front(iterator)
+  for _, id in pairs(iterator.objects) do
+    rendering.bring_to_front(id)
+  end
+end
+
+--- @param player LuaPlayer
+local function bring_all_to_front(player)
+  if not global.iterator then
+    return
+  end
+  local player_iterators = global.iterator[player.index]
+  if not player_iterators then
+    return
+  end
+  for _, iterator in pairs(player_iterators) do
+    bring_to_front(iterator)
+  end
+end
+
 --- @param starting_entity LuaEntity
 --- @param player LuaPlayer
 local function request_or_clear(starting_entity, player)
@@ -224,6 +245,7 @@ iterator.events = {
   ["pv-toggle-hover"] = on_toggle_hover,
 }
 
+iterator.bring_all_to_front = bring_all_to_front
 iterator.clear_all = clear_all
 iterator.request = request
 
