@@ -22,9 +22,6 @@ local function request(starting_entity, player, in_overlay)
   end
 
   local fluidbox = starting_entity.fluidbox
-  -- if not fluidbox then
-  --   return
-  -- end
   for i = 1, #fluidbox do
     --- @cast i uint
     local id = fluidbox.get_fluid_system_id(i)
@@ -79,9 +76,6 @@ local function iterate_entity(iterator, entity)
   local players_array = { iterator.player.index }
 
   local fluidbox = entity.fluidbox
-  -- if not fluidbox then
-  --   return
-  -- end
   for i = 1, #fluidbox do
     --- @cast i uint
     local id = fluidbox.get_fluid_system_id(i)
@@ -89,31 +83,43 @@ local function iterate_entity(iterator, entity)
       goto continue
     end
 
-    local connections = fluidbox.get_connections(i)
+    local connections = fluidbox.get_pipe_connections(i)
     for _, connection in pairs(connections) do
-      if iterator.completed[connection.owner.unit_number] then
+      if not connection.target then
         goto inner_continue
       end
+
+      local owner = connection.target.owner
+      if iterator.completed[owner.unit_number] then
+        goto inner_continue
+      end
+
+      local from = connection.is_underground and entity or connection.position
+      local to = connection.is_underground and owner or connection.target_position
 
       iterator.objects[#iterator.objects + 1] = rendering.draw_line({
         color = {},
         width = 6,
         surface = entity.surface_index,
-        from = entity,
-        to = connection.owner,
+        from = from,
+        to = to,
         players = players_array,
+        dash_length = connection.is_underground and 0.25 or 0,
+        gap_length = connection.is_underground and 0.25 or 0,
       })
       iterator.objects[#iterator.objects + 1] = rendering.draw_line({
         color = iterator.color,
         width = 3,
         surface = entity.surface_index,
-        from = entity,
-        to = connection.owner,
+        from = from,
+        to = to,
+        dash_length = connection.is_underground and 0.25 or 0,
+        gap_length = connection.is_underground and 0.25 or 0,
         players = players_array,
       })
 
       if not iterator.in_overlay then
-        flib_queue.push_back(iterator.queue, connection.owner)
+        flib_queue.push_back(iterator.queue, owner)
       end
 
       ::inner_continue::
