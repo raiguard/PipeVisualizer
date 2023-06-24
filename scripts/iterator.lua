@@ -8,13 +8,15 @@ local flib_queue = require("__flib__/queue")
 --- @field color Color?
 --- @field completed table<uint, boolean>
 --- @field id FluidSystemID
+--- @field in_overlay boolean
 --- @field objects RenderObjectID[]
 --- @field player LuaPlayer
 --- @field queue Queue<LuaEntity>
 
 --- @param starting_entity LuaEntity
 --- @param player LuaPlayer
-local function request(starting_entity, player)
+--- @param in_overlay boolean
+local function request(starting_entity, player, in_overlay)
   if not global.iterator then
     return
   end
@@ -35,44 +37,35 @@ local function request(starting_entity, player)
       player_iterators = {}
       global.iterator[player.index] = player_iterators
     end
-    if player_iterators[id] then
+    local iterator = player_iterators[id]
+    if iterator then
+      if in_overlay and not iterator.completed[starting_entity.unit_number] then
+        flib_queue.push_back(iterator.queue, starting_entity)
+      end
       goto continue
     end
 
     local queue = flib_queue.new()
     flib_queue.push_back(queue, starting_entity)
 
+    local color = { r = 0.3, g = 0.3, b = 0.3 }
+    local contents = fluidbox.get_fluid_system_contents(i)
+    if contents and next(contents) then
+      color = global.fluid_colors[next(contents)]
+    end
+
     --- @type Iterator
     player_iterators[id] = {
       completed = {},
+      color = color,
       id = id,
+      in_overlay = in_overlay,
       objects = {},
       player = player,
       queue = queue,
     }
 
     ::continue::
-  end
-end
-
---- @param fluidbox LuaFluidBox
---- @param index uint
---- @return Color?
-local function get_color(fluidbox, index)
-  local fluid = fluidbox[index]
-  local filter = fluidbox.get_filter(index)
-  --- @type string?
-  local fluid_name
-  if fluid then
-    fluid_name = fluid.name
-  elseif filter then
-    fluid_name = filter.name
-  else
-    fluid_name = fluidbox.get_locked_fluid(index)
-  end
-
-  if fluid_name then
-    return global.fluid_colors[fluid_name]
   end
 end
 
@@ -96,19 +89,6 @@ local function iterate_entity(iterator, entity)
       goto continue
     end
 
-    local color = iterator.color
-    if not color then
-      color = get_color(fluidbox, i)
-      if color then
-        iterator.color = color
-        -- Skip background lines
-        for j = 2, #iterator.objects, 2 do
-          rendering.set_color(iterator.objects[j], color)
-        end
-      else
-        color = { r = 0.3, g = 0.3, b = 0.3 }
-      end
-    end
     local connections = fluidbox.get_connections(i)
     for _, connection in pairs(connections) do
       if iterator.completed[connection.owner.unit_number] then
@@ -124,7 +104,7 @@ local function iterate_entity(iterator, entity)
         players = players_array,
       })
       iterator.objects[#iterator.objects + 1] = rendering.draw_line({
-        color = color,
+        color = iterator.color,
         width = 3,
         surface = entity.surface_index,
         from = entity,
@@ -132,7 +112,9 @@ local function iterate_entity(iterator, entity)
         players = players_array,
       })
 
-      flib_queue.push_back(iterator.queue, connection.owner)
+      if not iterator.in_overlay then
+        flib_queue.push_back(iterator.queue, connection.owner)
+      end
 
       ::inner_continue::
     end
@@ -189,7 +171,7 @@ local function request_or_clear(starting_entity, player)
   end
   local player_iterators = global.iterator[player.index]
   if not player_iterators then
-    request(starting_entity, player)
+    request(starting_entity, player, false)
     return
   end
   local did_clear = false
@@ -200,12 +182,11 @@ local function request_or_clear(starting_entity, player)
     end
   end
   if not did_clear then
-    request(starting_entity, player)
+    request(starting_entity, player, false)
   end
 end
 
---- @param e EventData.on_tick
-local function on_tick(e)
+local function on_tick()
   if not global.iterator then
     return
   end

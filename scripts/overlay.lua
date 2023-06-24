@@ -124,7 +124,7 @@ local function visualize_area(self, area)
     },
   })
   for _, entity in pairs(entities) do
-    iterator.request(entity, self.player)
+    iterator.request(entity, self.player, true)
   end
 end
 
@@ -193,6 +193,10 @@ local function on_toggle_overlay(e)
   end
   local entity = player.selected
   if entity and entity.prototype.belt_speed and script.active_mods["belt-visualizer"] then
+    return
+  end
+  local cursor_stack = player.cursor_stack
+  if cursor_stack and cursor_stack.valid_for_read and (cursor_stack.is_blueprint_book or cursor_stack.is_blueprint) then
     return
   end
   local self = global.overlay[e.player_index]
