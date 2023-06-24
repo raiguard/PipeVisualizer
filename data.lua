@@ -2,13 +2,13 @@ data:extend({
   {
     type = "custom-input",
     name = "pv-toggle-hover",
-    key_sequence = "CONTROL + SHIFT + P",
+    key_sequence = "SHIFT + H",
     action = "lua",
   },
   {
     type = "custom-input",
     name = "pv-toggle-overlay",
-    key_sequence = "CONTROL + P",
+    key_sequence = "H",
     action = "lua",
   },
   {
