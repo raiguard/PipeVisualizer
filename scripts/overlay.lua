@@ -192,7 +192,7 @@ local function on_toggle_overlay(e)
     return
   end
   local entity = player.selected
-  if entity and entity.prototype.belt_speed then
+  if entity and entity.prototype.belt_speed and script.active_mods["belt-visualizer"] then
     return
   end
   local self = global.overlay[e.player_index]
