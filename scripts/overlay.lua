@@ -330,6 +330,9 @@ end
 
 --- @param e EventData.on_player_display_resolution_changed
 local function on_player_display_resolution_changed(e)
+  if not global.overlay then
+    return
+  end
   local self = global.overlay[e.player_index]
   if not self then
     return
