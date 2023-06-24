@@ -5,6 +5,7 @@ local flib_queue = require("__flib__/queue")
 --- @alias PlayerIterators table<PlayerIndex, table<FluidSystemID, Iterator>>
 
 --- @class Iterator
+--- @field color Color?
 --- @field completed table<uint, boolean>
 --- @field id FluidSystemID
 --- @field objects RenderObjectID[]
@@ -95,15 +96,18 @@ local function iterate_entity(iterator, entity)
       goto continue
     end
 
-    local color = get_color(fluidbox, i)
-    if color then
-      iterator.color = color
-      -- Skip background lines
-      for j = 2, #iterator.objects, 2 do
-        rendering.set_color(iterator.objects[j], color)
+    local color = iterator.color
+    if not color then
+      color = get_color(fluidbox, i)
+      if color then
+        iterator.color = color
+        -- Skip background lines
+        for j = 2, #iterator.objects, 2 do
+          rendering.set_color(iterator.objects[j], color)
+        end
+      else
+        color = { r = 0.3, g = 0.3, b = 0.3 }
       end
-    else
-      color = { r = 0.3, g = 0.3, b = 0.3 }
     end
     local connections = fluidbox.get_connections(i)
     for _, connection in pairs(connections) do
