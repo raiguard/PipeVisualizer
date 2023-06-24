@@ -1,6 +1,8 @@
 local flib_bounding_box = require("__flib__/bounding-box")
 local flib_position = require("__flib__/position")
 
+local iterator = require("__PipeVisualizer__/scripts/iterator")
+
 -- In the source code, 200 is defined as the maximum viewable distance, but in reality it's around 220
 -- Map editor is 3x that, but we will ignore that for now
 -- Add five for a comfortable margin
@@ -84,38 +86,6 @@ local function get_areas(self, position)
   return areas
 end
 
---- @param fluidbox LuaFluidBox
---- @param index uint
---- @param colors table<uint, Color>
---- @return Color
-local function get_color(fluidbox, index, colors)
-  local id = fluidbox.get_fluid_system_id(index)
-  local color = colors[id]
-  if color then
-    return color
-  end
-
-  local fluid = fluidbox[index]
-  local filter = fluidbox.get_filter(index)
-  --- @type string?
-  local fluid_name
-  if fluid then
-    fluid_name = fluid.name
-  elseif filter then
-    fluid_name = filter.name
-  else
-    fluid_name = fluidbox.get_locked_fluid(index)
-  end
-
-  if fluid_name then
-    local color = global.fluid_colors[fluid_name]
-    colors[id] = color
-    return color
-  end
-
-  return { r = 0.3, g = 0.3, b = 0.3 }
-end
-
 --- @param player LuaPlayer
 --- @return DisplayResolution
 local function get_dimensions(player)
@@ -124,99 +94,6 @@ local function get_dimensions(player)
   resolution.width = resolution.width / divisor
   resolution.height = resolution.height / divisor
   return resolution
-end
-
---- @type table<string, Color>
-local box_colors = {
-  ["assembling-machine"] = { r = 1, g = 1 },
-  ["boiler"] = { r = 1, g = 1 },
-  ["fluid-turret"] = { r = 1 },
-  ["furnace"] = { r = 1, g = 1 },
-  ["generator"] = { r = 1, g = 1 },
-  ["infinity-pipe"] = { r = 1, g = 1 },
-  ["inserter"] = { r = 1, g = 1 },
-  ["lab"] = { r = 1, g = 1 },
-  ["loader"] = { r = 1, g = 1 },
-  ["loader-1x1"] = { r = 1, g = 1 },
-  ["mining-drill"] = { r = 1, g = 1 },
-  ["offshore-pump"] = { g = 1 },
-  ["pipe"] = { r = 1, g = 1 },
-  ["pipe-to-ground"] = { r = 1, g = 1 },
-  ["pump"] = { g = 1 },
-  ["reactor"] = { r = 1, g = 1 },
-  ["rocket-silo"] = { r = 1, g = 1 },
-  ["storage-tank"] = { r = 1, b = 1 },
-}
-
---- @param self Overlay
---- @param entity LuaEntity
---- @param colors table<uint, Color>
-local function visualize_entity(self, entity, colors)
-  if self.entity_objects[entity.unit_number] then
-    return
-  end
-  local entity_box = entity.prototype.collision_box
-  if (entity.direction - 2) % 4 == 0 then
-    entity_box = flib_bounding_box.rotate(entity_box)
-  end
-  --- @type RenderObjectID[]
-  local objects = {}
-  if flib_bounding_box.width(entity_box) > 1 or flib_bounding_box.height(entity_box) > 1 then
-    entity_box = flib_bounding_box.recenter_on(entity_box, entity.position)
-    objects[#objects + 1] = rendering.draw_rectangle({
-      color = box_colors[entity.type],
-      filled = false,
-      width = 1,
-      left_top = entity_box.left_top,
-      right_bottom = entity_box.right_bottom,
-      surface = entity.surface,
-      players = { self.player },
-    })
-    self.entity_objects[entity.unit_number] = objects
-    return
-  end
-  local fluidbox = entity.fluidbox
-  for i = 1, #fluidbox do
-    --- @cast i uint
-    local color = get_color(fluidbox, i, colors)
-    objects[#objects + 1] = rendering.draw_circle({
-      color = color,
-      filled = true,
-      radius = 0.15,
-      surface = entity.surface,
-      target = entity,
-    })
-    local pipe_connections = fluidbox.get_prototype(i).pipe_connections
-    for _, connection in pairs(fluidbox.get_connections(i)) do
-      local owner = connection.owner
-      local connection_box = flib_bounding_box.recenter_on(owner.prototype.collision_box, owner.position)
-      if (connection.owner.direction - 2) % 4 == 0 then
-        connection_box = flib_bounding_box.rotate(connection_box)
-      end
-      for _, pe in pairs(pipe_connections) do
-        local vector = pe.positions[entity.direction / 2 + 1]
-        if flib_bounding_box.contains_position(connection_box, flib_position.add(entity.position, vector)) then
-          objects[#objects + 1] = rendering.draw_line({
-            color = color,
-            width = 2,
-            surface = entity.surface,
-            from = entity,
-            to = entity,
-            to_offset = vector,
-          })
-          objects[#objects + 1] = rendering.draw_circle({
-            color = color,
-            filled = true,
-            radius = 0.15,
-            surface = entity.surface,
-            target = entity,
-            target_offset = vector,
-          })
-        end
-      end
-    end
-  end
-  self.entity_objects[entity.unit_number] = objects
 end
 
 --- @param self Overlay
@@ -246,9 +123,8 @@ local function visualize_area(self, area)
       "storage-tank",
     },
   })
-  local colors = {}
   for _, entity in pairs(entities) do
-    visualize_entity(self, entity, colors)
+    iterator.request(entity, self.player)
   end
 end
 
@@ -258,11 +134,13 @@ local function update_overlay(self)
   if self.last_position and flib_position.eq(position, self.last_position) then
     return
   end
-  local areas = get_areas(self, position)
-  self.last_position = position
   local box = flib_bounding_box.from_dimensions(position, self.dimensions.width, self.dimensions.height)
   rendering.set_left_top(self.background, box.left_top)
   rendering.set_right_bottom(self.background, box.right_bottom)
+
+  local areas = get_areas(self, position)
+
+  self.last_position = position
 
   for _, area in pairs(areas) do
     visualize_area(self, area)
@@ -299,6 +177,8 @@ local function destroy_overlay(self)
       rendering.destroy(id)
     end
   end
+  -- TODO:
+  iterator.clear_all(self.player)
   global.overlay[self.player.index] = nil
 end
 
@@ -309,6 +189,10 @@ local function on_toggle_overlay(e)
   end
   local player = game.get_player(e.player_index)
   if not player then
+    return
+  end
+  local entity = player.selected
+  if entity and entity.prototype.belt_speed then
     return
   end
   local self = global.overlay[e.player_index]

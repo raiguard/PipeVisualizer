@@ -1,6 +1,7 @@
 local flib_migration = require("__flib__/migration")
 
 local colors = require("__PipeVisualizer__/scripts/colors")
+local iterator = require("__PipeVisualizer__/scripts/iterator")
 local overlay = require("__PipeVisualizer__/scripts/overlay")
 
 local version_migrations = {
@@ -8,6 +9,7 @@ local version_migrations = {
     global = {}
 
     colors.on_init()
+    iterator.on_init()
     overlay.on_init()
   end,
 }
