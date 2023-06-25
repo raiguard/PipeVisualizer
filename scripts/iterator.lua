@@ -146,7 +146,7 @@ local function iterate_entity(iterator, entity)
 
       local owner = connection.target.owner
       if iterator.completed[owner.unit_number] then
-        if not pipe_types[entity.type] then
+        if not pipe_types[entity.type] and connection.type ~= "input-output" then
           draw_arrow(connection, iterator.color, entity.surface_index, players_array, iterator.objects)
         end
         goto inner_continue
