@@ -120,6 +120,7 @@ end
 local pipe_types = {
   ["pipe"] = true,
   ["pipe-to-ground"] = true,
+  ["infinity-pipe"] = true,
 }
 
 --- @param iterator Iterator
@@ -132,12 +133,7 @@ local function iterate_entity(iterator, entity)
   local players_array = { iterator.player.index }
 
   if entity.type == "storage-tank" or entity.type == "pump" then
-    -- TODO: Cache these ahead of time
-    local box = flib_bounding_box.move(entity.prototype.collision_box, entity.position)
-    if (entity.direction - 2) % 4 == 0 then
-      box = flib_bounding_box.rotate(box)
-    end
-    box = flib_bounding_box.resize(flib_bounding_box.ceil(box), -0.15)
+    local box = flib_bounding_box.resize(flib_bounding_box.ceil(entity.bounding_box), -0.15)
 
     iterator.objects[#iterator.objects + 1] = rendering.draw_rectangle({
       color = {},
