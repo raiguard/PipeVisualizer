@@ -1,3 +1,5 @@
+local flib_direction = require("__flib__/direction")
+local flib_position = require("__flib__/position")
 local flib_queue = require("__flib__/queue")
 
 --- @alias PlayerIndex uint
@@ -66,6 +68,59 @@ local function request(starting_entity, player, in_overlay)
   end
 end
 
+local inner_triangle_points =
+  { { target = { -0.296, 0.172 } }, { target = { 0, -0.109 } }, { target = { 0.296, 0.172 } } }
+local outer_triangle_points = { { target = { -0.42, 0.22 } }, { target = { 0, -0.175 } }, { target = { 0.42, 0.22 } } }
+
+local inner_rectangle_points = {
+  { target = { -0.148, -0.0545 } },
+  { target = { 0.148, -0.0545 } },
+  { target = { 0.148, 0.0545 } },
+  { target = { -0.148, 0.0545 } },
+  { target = { -0.148, -0.0545 } },
+}
+local outer_rectangle_points = {
+  { target = { -0.21, -0.11 } },
+  { target = { 0.21, -0.11 } },
+  { target = { 0.21, 0.11 } },
+  { target = { -0.21, 0.11 } },
+  { target = { -0.21, -0.11 } },
+}
+
+--- @param connection PipeConnection
+--- @param color Color
+--- @param surface_index uint
+--- @param players PlayerIndex[]
+--- @param objects RenderObjectID[]
+local function draw_arrow(connection, color, surface_index, players, objects)
+  local arrow_target = flib_position.lerp(connection.position, connection.target_position, 0.5)
+  local direction = flib_direction.from_positions(connection.position, connection.target_position, true)
+  if connection.type == "input" then
+    direction = flib_direction.opposite(direction)
+  end
+  objects[#objects + 1] = rendering.draw_polygon({
+    color = {},
+    vertices = connection.type == "input-output" and outer_rectangle_points or outer_triangle_points,
+    orientation = direction / 8,
+    target = arrow_target,
+    surface = surface_index,
+    players = players,
+  })
+  objects[#objects + 1] = rendering.draw_polygon({
+    color = color,
+    vertices = connection.type == "input-output" and inner_rectangle_points or inner_triangle_points,
+    orientation = direction / 8,
+    target = arrow_target,
+    surface = surface_index,
+    players = players,
+  })
+end
+
+local pipe_types = {
+  ["pipe"] = true,
+  ["pipe-to-ground"] = true,
+}
+
 --- @param iterator Iterator
 --- @param entity LuaEntity
 local function iterate_entity(iterator, entity)
@@ -91,11 +146,20 @@ local function iterate_entity(iterator, entity)
 
       local owner = connection.target.owner
       if iterator.completed[owner.unit_number] then
+        if not pipe_types[entity.type] then
+          draw_arrow(connection, iterator.color, entity.surface_index, players_array, iterator.objects)
+        end
         goto inner_continue
       end
 
       local from = connection.is_underground and entity or connection.position
       local to = connection.is_underground and owner or connection.target_position
+      if not pipe_types[entity.type] then
+        from = flib_position.lerp(connection.position, connection.target_position, 0.5)
+      end
+      if not pipe_types[owner.type] then
+        to = flib_position.lerp(connection.position, connection.target_position, 0.5)
+      end
 
       iterator.objects[#iterator.objects + 1] = rendering.draw_line({
         color = {},
@@ -107,6 +171,11 @@ local function iterate_entity(iterator, entity)
         dash_length = connection.is_underground and 0.25 or 0,
         gap_length = connection.is_underground and 0.25 or 0,
       })
+
+      if not pipe_types[entity.type] then
+        draw_arrow(connection, iterator.color, entity.surface_index, players_array, iterator.objects)
+      end
+
       iterator.objects[#iterator.objects + 1] = rendering.draw_line({
         color = iterator.color,
         width = 3,
