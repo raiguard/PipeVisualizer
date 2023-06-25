@@ -1,3 +1,4 @@
+local flib_bounding_box = require("__flib__/bounding-box")
 local flib_direction = require("__flib__/direction")
 local flib_position = require("__flib__/position")
 local flib_queue = require("__flib__/queue")
@@ -130,6 +131,32 @@ local function iterate_entity(iterator, entity)
 
   local players_array = { iterator.player.index }
 
+  if entity.type == "storage-tank" or entity.type == "pump" then
+    -- TODO: Cache these ahead of time
+    local box = flib_bounding_box.move(entity.prototype.collision_box, entity.position)
+    if (entity.direction - 2) % 4 == 0 then
+      box = flib_bounding_box.rotate(box)
+    end
+    box = flib_bounding_box.resize(flib_bounding_box.ceil(box), -0.15)
+
+    iterator.objects[#iterator.objects + 1] = rendering.draw_rectangle({
+      color = {},
+      left_top = box.left_top,
+      right_bottom = box.right_bottom,
+      width = 3,
+      surface = entity.surface_index,
+      players = players_array,
+    })
+    iterator.objects[#iterator.objects + 1] = rendering.draw_rectangle({
+      color = { r = iterator.color.r * 0.4, g = iterator.color.g * 0.4, b = iterator.color.b * 0.4, a = 0.4 },
+      left_top = box.left_top,
+      right_bottom = box.right_bottom,
+      filled = true,
+      surface = entity.surface_index,
+      players = players_array,
+    })
+  end
+
   local fluidbox = entity.fluidbox
   for i = 1, #fluidbox do
     --- @cast i uint
@@ -146,7 +173,7 @@ local function iterate_entity(iterator, entity)
 
       local owner = connection.target.owner
       if iterator.completed[owner.unit_number] then
-        if not pipe_types[entity.type] and connection.type ~= "input-output" then
+        if not pipe_types[entity.type] then
           draw_arrow(connection, iterator.color, entity.surface_index, players_array, iterator.objects)
         end
         goto inner_continue
