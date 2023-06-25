@@ -132,7 +132,7 @@ local function iterate_entity(iterator, entity)
 
   local players_array = { iterator.player.index }
 
-  if entity.type == "storage-tank" or entity.type == "pump" then
+  if not pipe_types[entity.type] then
     local box = flib_bounding_box.resize(flib_bounding_box.ceil(entity.bounding_box), -0.15)
 
     iterator.objects[#iterator.objects + 1] = rendering.draw_rectangle({
