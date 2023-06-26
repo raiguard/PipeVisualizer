@@ -344,7 +344,7 @@ end
 
 iterator.events = {
   [defines.events.on_tick] = on_tick,
-  ["pv-toggle-hover"] = on_toggle_hover,
+  ["pv-visualize-selected"] = on_toggle_hover,
 }
 
 iterator.bring_all_to_front = bring_all_to_front

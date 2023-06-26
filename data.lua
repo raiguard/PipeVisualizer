@@ -1,7 +1,7 @@
 data:extend({
   {
     type = "custom-input",
-    name = "pv-toggle-hover",
+    name = "pv-visualize-selected",
     key_sequence = "H",
     action = "lua",
   },
@@ -9,6 +9,12 @@ data:extend({
     type = "custom-input",
     name = "pv-toggle-overlay",
     key_sequence = "SHIFT + H",
+    action = "lua",
+  },
+  {
+    type = "custom-input",
+    name = "pv-toggle-hover",
+    key_sequence = "",
     action = "lua",
   },
   {
