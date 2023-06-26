@@ -193,8 +193,9 @@ local function iterate_entity(iterator, entity)
         from = from,
         to = to,
         players = players_array,
-        dash_length = is_underground and 0.25 or 0,
-        gap_length = is_underground and 0.25 or 0,
+        dash_length = is_underground and 0.5 or 0,
+        gap_length = is_underground and 0.5 or 0,
+        dash_offset = is_underground and 0.25 or 0,
       })
 
       if not pipe_types[entity.type] then
@@ -207,8 +208,9 @@ local function iterate_entity(iterator, entity)
         surface = entity.surface_index,
         from = from,
         to = to,
-        dash_length = is_underground and 0.25 or 0,
-        gap_length = is_underground and 0.25 or 0,
+        dash_length = is_underground and 0.5 or 0,
+        gap_length = is_underground and 0.5 or 0,
+        dash_offset = is_underground and 0.25 or 0,
         players = players_array,
       })
 
