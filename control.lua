@@ -41,3 +41,5 @@ handler.add_libraries({
 --     end
 --   end
 -- end
+
+-- /c game.player.teleport({ x = 646.60546875, y = -160.99609375 }) game.player.zoom = 0.67
