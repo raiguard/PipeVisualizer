@@ -96,12 +96,12 @@ local outer_rectangle_points = {
 local function draw_arrow(connection, color, surface_index, players, objects)
   local arrow_target = flib_position.lerp(connection.position, connection.target_position, 0.5)
   local direction = flib_direction.from_positions(connection.position, connection.target_position, true)
-  if connection.type == "input" then
+  if connection.flow_direction == "input" then
     direction = flib_direction.opposite(direction)
   end
   objects[#objects + 1] = rendering.draw_polygon({
     color = {},
-    vertices = connection.type == "input-output" and outer_rectangle_points or outer_triangle_points,
+    vertices = connection.flow_direction == "input-output" and outer_rectangle_points or outer_triangle_points,
     orientation = direction / 8,
     target = arrow_target,
     surface = surface_index,
@@ -109,7 +109,7 @@ local function draw_arrow(connection, color, surface_index, players, objects)
   })
   objects[#objects + 1] = rendering.draw_polygon({
     color = color,
-    vertices = connection.type == "input-output" and inner_rectangle_points or inner_triangle_points,
+    vertices = connection.flow_direction == "input-output" and inner_rectangle_points or inner_triangle_points,
     orientation = direction / 8,
     target = arrow_target,
     surface = surface_index,
@@ -175,8 +175,10 @@ local function iterate_entity(iterator, entity)
         goto inner_continue
       end
 
-      local from = connection.is_underground and entity or connection.position
-      local to = connection.is_underground and owner or connection.target_position
+      local is_underground = connection.connection_type == "underground"
+
+      local from = is_underground and entity or connection.position
+      local to = is_underground and owner or connection.target_position
       if not pipe_types[entity.type] then
         from = flib_position.lerp(connection.position, connection.target_position, 0.5)
       end
@@ -191,8 +193,8 @@ local function iterate_entity(iterator, entity)
         from = from,
         to = to,
         players = players_array,
-        dash_length = connection.is_underground and 0.25 or 0,
-        gap_length = connection.is_underground and 0.25 or 0,
+        dash_length = is_underground and 0.25 or 0,
+        gap_length = is_underground and 0.25 or 0,
       })
 
       if not pipe_types[entity.type] then
@@ -205,8 +207,8 @@ local function iterate_entity(iterator, entity)
         surface = entity.surface_index,
         from = from,
         to = to,
-        dash_length = connection.is_underground and 0.25 or 0,
-        gap_length = connection.is_underground and 0.25 or 0,
+        dash_length = is_underground and 0.25 or 0,
+        gap_length = is_underground and 0.25 or 0,
         players = players_array,
       })
 
