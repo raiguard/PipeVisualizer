@@ -53,20 +53,23 @@ local outer_rectangle_points = {
   { target = { -0.21, -0.11 } },
 }
 
+--- @type float
+local border_width = 3 / 32
+
 --- @type table<defines.direction, Vector>
 local border_offsets = {
-  [defines.direction.north] = { x = 0, y = -0.09 },
-  [defines.direction.east] = { x = 0.09, y = 0 },
-  [defines.direction.south] = { x = 0, y = 0.09 },
-  [defines.direction.west] = { x = -0.09, y = 0 },
+  [defines.direction.north] = { x = 0, y = -border_width },
+  [defines.direction.east] = { x = border_width, y = 0 },
+  [defines.direction.south] = { x = 0, y = border_width },
+  [defines.direction.west] = { x = -border_width, y = 0 },
 }
 
 --- @type table<defines.direction, Vector>
 local offsets = {
-  [defines.direction.north] = { x = 0, y = -0.042 },
-  [defines.direction.east] = { x = 0.042, y = 0 },
-  [defines.direction.south] = { x = 0, y = 0.042 },
-  [defines.direction.west] = { x = -0.042, y = 0 },
+  [defines.direction.north] = { x = 0, y = -(border_width / 2 - 0.01) },
+  [defines.direction.east] = { x = (border_width / 2 - 0.01), y = 0 },
+  [defines.direction.south] = { x = 0, y = (border_width / 2 - 0.01) },
+  [defines.direction.west] = { x = -(border_width / 2 - 0.01), y = 0 },
 }
 
 local pipe_types = {
@@ -190,8 +193,8 @@ function renderer.draw_connection_border(connection, entity, target, fluid_syste
         from = flib_position.add(from, border_offsets[flib_direction.opposite(direction)]),
         to = flib_position.add(to, border_offsets[direction]),
         players = { player_index },
-        dash_length = is_underground and 0.349 or 0,
-        gap_length = is_underground and 0.651 or 0,
+        dash_length = is_underground and (0.25 + border_width) or 0,
+        gap_length = is_underground and (0.75 - border_width) or 0,
         dash_offset = is_underground and 0.42 or 0,
         visible = false,
       }),
