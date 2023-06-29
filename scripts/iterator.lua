@@ -8,16 +8,16 @@ local renderer = require("__PipeVisualizer__/scripts/renderer")
 
 --- @class Iterator
 --- @field color Color
---- @field completed table<uint, boolean>
+--- @field completed table<uint, LuaEntity>
 --- @field id FluidSystemID
 --- @field in_overlay boolean
---- @field player LuaPlayer
+--- @field player_index PlayerIndex
 --- @field queue Queue<LuaEntity>
 
 --- @param starting_entity LuaEntity
---- @param player LuaPlayer
+--- @param player_index PlayerIndex
 --- @param in_overlay boolean
-local function request(starting_entity, player, in_overlay)
+local function request(starting_entity, player_index, in_overlay)
   if not global.iterator then
     return
   end
@@ -30,10 +30,10 @@ local function request(starting_entity, player, in_overlay)
       goto continue
     end
 
-    local player_iterators = global.iterator[player.index]
+    local player_iterators = global.iterator[player_index]
     if not player_iterators then
       player_iterators = {}
-      global.iterator[player.index] = player_iterators
+      global.iterator[player_index] = player_iterators
     end
     local iterator = player_iterators[id]
     if iterator then
@@ -59,8 +59,7 @@ local function request(starting_entity, player, in_overlay)
       color = color,
       id = id,
       in_overlay = in_overlay,
-      objects = {},
-      player = player,
+      player_index = player_index,
       queue = queue,
     }
 
@@ -75,7 +74,7 @@ local function iterate_entity(iterator, entity)
     return
   end
 
-  local players_array = { iterator.player.index }
+  local player_index = iterator.player_index
   local color = iterator.color
 
   local fluidbox = entity.fluidbox
@@ -94,7 +93,7 @@ local function iterate_entity(iterator, entity)
 
       local target = connection.target.owner
 
-      renderer.draw_connection(connection, entity, target, iterator.id, color, players_array)
+      renderer.draw_connection(connection, entity, target, iterator.id, color, player_index)
 
       if not iterator.completed[target.unit_number] and not iterator.in_overlay then
         flib_queue.push_back(iterator.queue, target)
@@ -106,9 +105,9 @@ local function iterate_entity(iterator, entity)
     ::continue::
   end
 
-  renderer.draw_entity(entity, color, players_array)
+  renderer.draw_entity(entity, color, player_index)
 
-  iterator.completed[entity.unit_number] = true
+  iterator.completed[entity.unit_number] = entity
 end
 
 --- @param iterator Iterator
@@ -125,22 +124,22 @@ end
 
 --- @param iterator Iterator
 local function clear(iterator)
-  for unit_number in pairs(iterator.completed) do
-    renderer.clear(unit_number, iterator.id)
+  for _, entity in pairs(iterator.completed) do
+    renderer.clear(entity, iterator.id, iterator.player_index)
   end
-  local player_iterators = global.iterator[iterator.player.index]
+  local player_iterators = global.iterator[iterator.player_index]
   player_iterators[iterator.id] = nil
   if not next(player_iterators) then
-    global.iterator[iterator.player.index] = nil
+    global.iterator[iterator.player_index] = nil
   end
 end
 
---- @param player LuaPlayer
-local function clear_all(player)
+--- @param player_index PlayerIndex
+local function clear_all(player_index)
   if not global.iterator then
     return
   end
-  local player_iterators = global.iterator[player.index]
+  local player_iterators = global.iterator[player_index]
   if not player_iterators then
     return
   end
@@ -150,14 +149,14 @@ local function clear_all(player)
 end
 
 --- @param starting_entity LuaEntity
---- @param player LuaPlayer
-local function request_or_clear(starting_entity, player)
+--- @param player_index PlayerIndex
+local function request_or_clear(starting_entity, player_index)
   if not global.iterator then
     return
   end
-  local player_iterators = global.iterator[player.index]
+  local player_iterators = global.iterator[player_index]
   if not player_iterators then
-    request(starting_entity, player, false)
+    request(starting_entity, player_index, false)
     return
   end
   local did_clear = false
@@ -168,7 +167,7 @@ local function request_or_clear(starting_entity, player)
     end
   end
   if not did_clear then
-    request(starting_entity, player, false)
+    request(starting_entity, player_index, false)
   end
 end
 
@@ -192,10 +191,10 @@ local function on_toggle_hover(e)
   end
   local entity = player.selected
   if not entity then
-    clear_all(player)
+    clear_all(e.player_index)
     return
   end
-  request_or_clear(entity, player)
+  request_or_clear(entity, e.player_index)
 end
 
 local iterator = {}

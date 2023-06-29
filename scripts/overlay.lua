@@ -124,7 +124,7 @@ local function visualize_area(self, area)
     },
   })
   for _, entity in pairs(entities) do
-    iterator.request(entity, self.player, true)
+    iterator.request(entity, self.player.index, true)
   end
 end
 
@@ -178,8 +178,7 @@ local function destroy_overlay(self)
       rendering.destroy(id)
     end
   end
-  -- TODO:
-  iterator.clear_all(self.player)
+  iterator.clear_all(self.player.index)
   global.overlay[self.player.index] = nil
 end
 
@@ -205,7 +204,7 @@ local function on_toggle_overlay(e)
     destroy_overlay(self)
   else
     local overlay = create_overlay(player)
-    iterator.clear_all(player)
+    iterator.clear_all(e.player_index)
     update_overlay(overlay)
   end
   player.set_shortcut_toggled("pv-toggle-overlay", global.overlay[e.player_index] ~= nil)
