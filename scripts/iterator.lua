@@ -85,27 +85,40 @@ local function iterate_entity(iterator, entity)
       goto continue
     end
 
+    --- @type PipeConnection[]
+    local existing_connections = {}
     local connections = fluidbox.get_pipe_connections(i)
-    for _, connection in pairs(connections) do
+    for j = 1, #connections do
+      local connection = connections[j]
       if not connection.target then
         goto inner_continue
       end
 
       local target = connection.target.owner
 
-      renderer.draw_connection(connection, entity, target, iterator.id, color, player_index)
+      if iterator.completed[target.unit_number] then
+        existing_connections[#existing_connections + 1] = connection
+        goto inner_continue
+      end
 
-      if not iterator.completed[target.unit_number] and not iterator.in_overlay then
+      renderer.draw_connection_border(connection, entity, target, iterator.id, color, player_index)
+      if not iterator.in_overlay then
         flib_queue.push_back(iterator.queue, target)
       end
 
       ::inner_continue::
     end
 
+    for j = 1, #existing_connections do
+      local connection = existing_connections[j]
+      -- TODO: Deduplicate owner indexing?
+      renderer.draw_connection(connection, entity, connection.target.owner, iterator.id, color, player_index)
+    end
+
     ::continue::
   end
 
-  renderer.draw_entity(entity, color, player_index)
+  renderer.draw_entity(entity, color, iterator.id, player_index)
 
   iterator.completed[entity.unit_number] = entity
 end

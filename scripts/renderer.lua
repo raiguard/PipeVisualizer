@@ -1,3 +1,14 @@
+--[[
+  - Get entity from queue
+  - Draw all connection borders that we care about
+    - Connections that are connected to machines: draw a shape
+  - Add all of those connections to queue
+  - Draw colored connections for all that were already present when iteration started
+  - Check existing connections for higher priority I/O type and update shape if needed
+  - Draw box if needed and nonexistent, store fluid system ID of box color
+  - If box already existed, check if current fluid system ID is lower, and if so, overwrite color
+]]
+
 local flib_bounding_box = require("__flib__/bounding-box")
 local flib_direction = require("__flib__/direction")
 local flib_position = require("__flib__/position")
@@ -7,8 +18,8 @@ local flib_position = require("__flib__/position")
 --- @field entity LuaEntity
 --- @field flow_direction string
 --- @field fluid_system_id uint
---- @field line_border RenderObjectID
---- @field line RenderObjectID
+--- @field line_border RenderObjectID?
+--- @field line RenderObjectID?
 --- @field player_index PlayerIndex
 --- @field shape_border RenderObjectID?
 --- @field shape RenderObjectID?
@@ -16,6 +27,7 @@ local flib_position = require("__flib__/position")
 
 --- @class EntityRenderData
 --- @field box_border RenderObjectID?
+--- @field box_color_fluid_system_id uint?
 --- @field box RenderObjectID?
 --- @field connections table<UnitNumber, ConnectionRenderData>
 --- @field entity LuaEntity
@@ -103,8 +115,12 @@ end
 
 --- @param connection_data ConnectionRenderData
 local function clear_connection(connection_data)
-  rendering.destroy(connection_data.line_border)
-  rendering.destroy(connection_data.line)
+  if connection_data.line then
+    rendering.destroy(connection_data.line)
+  end
+  if connection_data.line_border then
+    rendering.destroy(connection_data.line_border)
+  end
   if connection_data.shape_border then
     rendering.destroy(connection_data.shape_border)
   end
@@ -115,16 +131,6 @@ end
 
 --- @class Renderer
 local renderer = {}
-
---- @param entity_data EntityRenderData
-function renderer.bring_to_front(entity_data)
-  for _, connection_data in pairs(entity_data.connections) do
-    rendering.bring_to_front(connection_data.line)
-    if connection_data.shape then
-      rendering.bring_to_front(connection_data.shape)
-    end
-  end
-end
 
 --- @param entity LuaEntity
 --- @param fluid_system_id uint
@@ -152,7 +158,7 @@ end
 --- @param target LuaEntity
 --- @param color Color
 --- @param player_index PlayerIndex
-function renderer.draw_connection(connection, entity, target, fluid_system_id, color, player_index)
+function renderer.draw_connection_border(connection, entity, target, fluid_system_id, color, player_index)
   local is_underground = connection.connection_type == "underground"
 
   local direction = flib_direction.from_positions(connection.position, connection.target_position, true)
@@ -173,6 +179,7 @@ function renderer.draw_connection(connection, entity, target, fluid_system_id, c
     --- @type ConnectionRenderData
     connection_data = {
       color = color,
+      flow_direction = connection.flow_direction,
       fluid_system_id = fluid_system_id,
       entity = entity,
       target = target,
@@ -186,17 +193,7 @@ function renderer.draw_connection(connection, entity, target, fluid_system_id, c
         dash_length = is_underground and 0.349 or 0,
         gap_length = is_underground and 0.651 or 0,
         dash_offset = is_underground and 0.42 or 0,
-      }),
-      line = rendering.draw_line({
-        color = color,
-        width = 3,
-        surface = entity.surface_index,
-        from = flib_position.add(from, offsets[flib_direction.opposite(direction)]),
-        to = flib_position.add(to, offsets[direction]),
-        dash_length = is_underground and 0.25 or 0,
-        gap_length = is_underground and 0.75 or 0,
-        dash_offset = is_underground and 0.42 or 0,
-        players = { player_index },
+        visible = false,
       }),
       player_index = player_index,
     }
@@ -205,54 +202,95 @@ function renderer.draw_connection(connection, entity, target, fluid_system_id, c
     target_data.connections[entity.unit_number] = connection_data
   end
 
-  if pipe_types[entity.type] then
-    renderer.bring_to_front(entity_data)
-    return
-  end
-
-  if connection_data.shape and connection_data.flow_direction ~= "input-output" then
+  if pipe_types[entity.type] and pipe_types[target.type] then
     return
   end
 
   if connection.flow_direction == "input" then
     direction = flib_direction.opposite(direction)
   end
-  connection_data.flow_direction = connection.flow_direction
-  if connection_data.shape then
-    rendering.set_vertices(
-      connection_data.shape_border,
-      connection.flow_direction == "input-output" and outer_rectangle_points or outer_triangle_points
-    )
-    rendering.set_vertices(
-      connection_data.shape,
-      connection.flow_direction == "input-output" and inner_rectangle_points or inner_triangle_points
-    )
-  else
-    connection_data.shape_border = rendering.draw_polygon({
-      color = {},
-      vertices = connection.flow_direction == "input-output" and outer_rectangle_points or outer_triangle_points,
-      orientation = direction / 8,
-      target = shape_position,
-      surface = entity.surface_index,
-      players = { player_index },
-    })
-    connection_data.shape = rendering.draw_polygon({
-      color = color,
-      vertices = connection.flow_direction == "input-output" and inner_rectangle_points or inner_triangle_points,
-      orientation = direction / 8,
-      target = shape_position,
-      surface = entity.surface_index,
-      players = { player_index },
-    })
+  connection_data.shape_border = rendering.draw_polygon({
+    color = {},
+    vertices = connection.flow_direction == "input-output" and outer_rectangle_points or outer_triangle_points,
+    orientation = direction / 8,
+    target = shape_position,
+    surface = entity.surface_index,
+    players = { player_index },
+    visible = false,
+  })
+end
+
+--- @param connection PipeConnection
+--- @param entity LuaEntity
+--- @param target LuaEntity
+--- @param color Color
+--- @param player_index PlayerIndex
+function renderer.draw_connection(connection, entity, target, fluid_system_id, color, player_index)
+  local is_underground = connection.connection_type == "underground"
+
+  local direction = flib_direction.from_positions(connection.position, connection.target_position, true)
+  local from = is_underground and entity.position or connection.position
+  local to = is_underground and target.position or connection.target_position
+
+  local shape_position = flib_position.lerp(connection.position, connection.target_position, 0.5)
+  if not pipe_types[entity.type] then
+    from = shape_position
+  end
+  if not pipe_types[target.type] then
+    to = shape_position
   end
 
-  renderer.bring_to_front(entity_data)
+  local entity_data = get_entity_data(entity, player_index)
+  local connection_data = entity_data.connections[
+    target.unit_number --[[@as uint]]
+  ]
+
+  connection_data.line = rendering.draw_line({
+    color = color,
+    width = 3,
+    surface = entity.surface_index,
+    from = flib_position.add(from, offsets[flib_direction.opposite(direction)]),
+    to = flib_position.add(to, offsets[direction]),
+    dash_length = is_underground and 0.25 or 0,
+    gap_length = is_underground and 0.75 or 0,
+    dash_offset = is_underground and 0.42 or 0,
+    players = { player_index },
+  })
+  rendering.set_visible(connection_data.line_border, true)
+
+  if not connection_data.shape_border then
+    return
+  end
+  rendering.set_visible(connection_data.shape_border, true)
+
+  if connection_data.flow_direction == "input-output" and connection.flow_direction ~= "input-output" then
+    if connection.flow_direction == "input" then
+      direction = flib_direction.opposite(direction)
+    end
+    rendering.set_orientation(connection_data.shape_border, direction / 8)
+    connection_data.flow_direction = connection.flow_direction
+    rendering.set_vertices(
+      connection_data.shape_border,
+      connection_data.flow_direction == "input-output" and outer_rectangle_points or outer_triangle_points
+    )
+  elseif connection_data.flow_direction == "output" then
+    direction = flib_direction.opposite(direction)
+  end
+  connection_data.shape = rendering.draw_polygon({
+    color = color,
+    vertices = connection_data.flow_direction == "input-output" and inner_rectangle_points or inner_triangle_points,
+    orientation = direction / 8,
+    target = shape_position,
+    surface = entity.surface_index,
+    players = { player_index },
+  })
 end
 
 --- @param entity LuaEntity
 --- @param color Color
+--- @param fluid_system_id uint
 --- @param player_index PlayerIndex
-function renderer.draw_entity(entity, color, player_index)
+function renderer.draw_entity(entity, color, fluid_system_id, player_index)
   if pipe_types[entity.type] then
     return
   end
@@ -276,18 +314,14 @@ function renderer.draw_entity(entity, color, player_index)
       surface = entity.surface_index,
       players = { player_index },
     })
+    entity_data.box_color_fluid_system_id = fluid_system_id
     return
   end
 
-  --- @type Color
-  local color = { r = 0.3, g = 0.3, b = 0.3 }
-  local lowest = math.huge
-  for _, connection_data in pairs(entity_data.connections) do
-    if connection_data.fluid_system_id < lowest then
-      color = connection_data.color
-      lowest = connection_data.fluid_system_id
-    end
+  if fluid_system_id >= entity_data.box_color_fluid_system_id then
+    return
   end
+  entity_data.box_color_fluid_system_id = fluid_system_id
   rendering.set_color(entity_data.box, { r = color.r * 0.4, g = color.g * 0.4, b = color.b * 0.4, a = 0.4 })
 end
 
