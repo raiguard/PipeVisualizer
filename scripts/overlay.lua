@@ -205,7 +205,7 @@ local function on_toggle_overlay(e)
     destroy_overlay(self)
   else
     local overlay = create_overlay(player)
-    iterator.bring_all_to_front(player)
+    iterator.clear_all(player)
     update_overlay(overlay)
   end
   player.set_shortcut_toggled("pv-toggle-overlay", global.overlay[e.player_index] ~= nil)
