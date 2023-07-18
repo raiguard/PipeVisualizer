@@ -14,7 +14,6 @@ local max_overlay_size = 220 + 5
 --- @class Overlay
 --- @field background RenderObjectID
 --- @field dimensions DisplayResolution
---- @field entity_objects table<UnitNumber, RenderObjectID[]>
 --- @field last_position MapPosition
 --- @field player LuaPlayer
 
@@ -163,7 +162,6 @@ local function create_overlay(player)
   local self = {
     background = background,
     dimensions = get_dimensions(player),
-    entity_objects = {},
     player = player,
   }
   global.overlay[player.index] = self
@@ -173,11 +171,6 @@ end
 --- @param self Overlay
 local function destroy_overlay(self)
   rendering.destroy(self.background)
-  for _, objects in pairs(self.entity_objects) do
-    for _, id in pairs(objects) do
-      rendering.destroy(id)
-    end
-  end
   iterator.clear_all(self.player.index)
   global.overlay[self.player.index] = nil
 end
