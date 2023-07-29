@@ -13,6 +13,7 @@ local flib_position = require("__flib__/position")
 --- @class ConnectionData
 --- @field connection PipeConnection
 --- @field direction defines.direction
+--- @field has_shape boolean
 --- @field is_underground boolean
 --- @field line_border RenderObjectID?
 --- @field line RenderObjectID?
@@ -150,6 +151,7 @@ function renderer.start_connection(iterator, entity_data, connection_index, conn
   local connection_data = {
     connection = connection,
     direction = direction,
+    has_shape = false,
     is_underground = connection.connection_type == "underground",
     shape_position = shape_position,
     source = entity_data.entity,
@@ -163,20 +165,26 @@ function renderer.start_connection(iterator, entity_data, connection_index, conn
   }
   entity_data.connections[connection_index] = connection_data
 
-  connection_data.line_border = rendering.draw_line({
-    color = {},
-    width = 6,
-    surface = entity_data.surface_index,
-    from = flib_position.add(source_position, border_offsets[flib_direction.opposite(direction)]),
-    to = flib_position.add(target_position, border_offsets[direction]),
-    players = { iterator.player_index },
-    dash_length = is_underground and (0.25 + border_width) or 0,
-    gap_length = is_underground and (0.75 - border_width) or 0,
-    dash_offset = is_underground and 0.42 or 0,
-    visible = false,
-  })
+  if not iterator.in_overlay then
+    connection_data.line_border = rendering.draw_line({
+      color = {},
+      width = 6,
+      surface = entity_data.surface_index,
+      from = flib_position.add(source_position, border_offsets[flib_direction.opposite(direction)]),
+      to = flib_position.add(target_position, border_offsets[direction]),
+      players = { iterator.player_index },
+      dash_length = is_underground and (0.25 + border_width) or 0,
+      gap_length = is_underground and (0.75 - border_width) or 0,
+      dash_offset = is_underground and 0.42 or 0,
+      visible = false,
+    })
+  end
 
   if pipe_types[entity_data.type] and pipe_types[target_owner.type] then
+    return
+  end
+  connection_data.has_shape = true
+  if iterator.in_overlay then
     return
   end
 
@@ -215,10 +223,9 @@ function renderer.finish_connection(iterator, system, entity_data, connection_da
     rendering.set_visible(connection_data.line_border, true)
   end
 
-  if not connection_data.shape_border then
+  if not connection_data.has_shape then
     return
   end
-  rendering.set_visible(connection_data.shape_border, true)
 
   local flow_direction = connection_data.source_flow_direction
   if flow_direction == "input-output" and connection_data.target_flow_direction ~= "input-output" then
@@ -229,11 +236,14 @@ function renderer.finish_connection(iterator, system, entity_data, connection_da
   elseif flow_direction == "input" then
     direction = flib_direction.opposite(direction)
   end
-  rendering.set_orientation(connection_data.shape_border, direction / 8)
-  rendering.set_vertices(
-    connection_data.shape_border,
-    flow_direction == "input-output" and outer_rectangle_points or outer_triangle_points
-  )
+  if connection_data.shape_border then
+    rendering.set_visible(connection_data.shape_border, true)
+    rendering.set_orientation(connection_data.shape_border, direction / 8)
+    rendering.set_vertices(
+      connection_data.shape_border,
+      flow_direction == "input-output" and outer_rectangle_points or outer_triangle_points
+    )
+  end
 
   connection_data.shape = rendering.draw_polygon({
     color = system.color,
@@ -257,7 +267,9 @@ function renderer.draw_box(iterator, entity)
   ]
   if not entity_data then
     local box = flib_bounding_box.resize(flib_bounding_box.ceil(entity.bounding_box), -0.15)
-    entity_data = {
+    --- @type RenderObjectID?
+    local box_border
+    if not iterator.in_overlay then
       box_border = rendering.draw_rectangle({
         color = {},
         filled = false,
@@ -266,7 +278,10 @@ function renderer.draw_box(iterator, entity)
         width = 3,
         surface = entity.surface_index,
         players = { iterator.player_index },
-      }),
+      })
+    end
+    entity_data = {
+      box_border = box_border,
       box = rendering.draw_rectangle({
         color = {},
         filled = true,
@@ -295,7 +310,9 @@ function renderer.draw_box(iterator, entity)
     rendering.set_color(entity_data.box, { r = color.r * 0.4, g = color.g * 0.4, b = color.b * 0.4, a = 0.4 })
   else
     -- Clear box if there are no more entities
-    rendering.destroy(entity_data.box_border)
+    if entity_data.box_border then
+      rendering.destroy(entity_data.box_border)
+    end
     rendering.destroy(entity_data.box)
     iterator.entities[entity_data.unit_number] = nil
   end

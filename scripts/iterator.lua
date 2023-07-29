@@ -19,7 +19,7 @@ local renderer = require("__PipeVisualizer__/scripts/renderer")
 --- @field id FluidSystemID
 
 --- @class UnifiedEntityData
---- @field box_border RenderObjectID
+--- @field box_border RenderObjectID?
 --- @field box RenderObjectID
 --- @field entity LuaEntity
 --- @field unit_number UnitNumber
