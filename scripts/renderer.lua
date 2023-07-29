@@ -165,20 +165,20 @@ function renderer.start_connection(iterator, entity_data, connection_index, conn
   }
   entity_data.connections[connection_index] = connection_data
 
-  if not iterator.in_overlay then
-    connection_data.line_border = rendering.draw_line({
-      color = {},
-      width = 6,
-      surface = entity_data.surface_index,
-      from = flib_position.add(source_position, border_offsets[flib_direction.opposite(direction)]),
-      to = flib_position.add(target_position, border_offsets[direction]),
-      players = { iterator.player_index },
-      dash_length = is_underground and (0.25 + border_width) or 0,
-      gap_length = is_underground and (0.75 - border_width) or 0,
-      dash_offset = is_underground and 0.42 or 0,
-      visible = false,
-    })
-  end
+  -- if not iterator.in_overlay then
+  --   connection_data.line_border = rendering.draw_line({
+  --     color = {},
+  --     width = 6,
+  --     surface = entity_data.surface_index,
+  --     from = flib_position.add(source_position, border_offsets[flib_direction.opposite(direction)]),
+  --     to = flib_position.add(target_position, border_offsets[direction]),
+  --     players = { iterator.player_index },
+  --     dash_length = is_underground and (0.25 + border_width) or 0,
+  --     gap_length = is_underground and (0.75 - border_width) or 0,
+  --     dash_offset = is_underground and 0.42 or 0,
+  --     visible = false,
+  --   })
+  -- end
 
   if pipe_types[entity_data.type] and pipe_types[target_owner.type] then
     return
@@ -191,15 +191,15 @@ function renderer.start_connection(iterator, entity_data, connection_index, conn
   if connection.flow_direction == "input" then
     direction = flib_direction.opposite(direction)
   end
-  connection_data.shape_border = rendering.draw_polygon({
-    color = {},
-    vertices = connection.flow_direction == "input-output" and outer_rectangle_points or outer_triangle_points,
-    orientation = direction / 8,
-    target = shape_position,
-    surface = entity_data.surface_index,
-    players = { iterator.player_index },
-    visible = false,
-  })
+  -- connection_data.shape_border = rendering.draw_polygon({
+  --   color = {},
+  --   vertices = connection.flow_direction == "input-output" and outer_rectangle_points or outer_triangle_points,
+  --   orientation = direction / 8,
+  --   target = shape_position,
+  --   surface = entity_data.surface_index,
+  --   players = { iterator.player_index },
+  --   visible = false,
+  -- })
 end
 
 --- @param iterator Iterator
@@ -266,20 +266,20 @@ function renderer.draw_box(iterator, entity)
     entity.unit_number --[[@as uint]]
   ]
   if not entity_data then
-    local box = flib_bounding_box.resize(flib_bounding_box.ceil(entity.bounding_box), -0.15)
+    local box = flib_bounding_box.resize(entity.selection_box, -0.1)
     --- @type RenderObjectID?
     local box_border
-    if not iterator.in_overlay then
-      box_border = rendering.draw_rectangle({
-        color = {},
-        filled = false,
-        left_top = box.left_top,
-        right_bottom = box.right_bottom,
-        width = 3,
-        surface = entity.surface_index,
-        players = { iterator.player_index },
-      })
-    end
+    -- if not iterator.in_overlay then
+    --   box_border = rendering.draw_rectangle({
+    --     color = {},
+    --     filled = false,
+    --     left_top = box.left_top,
+    --     right_bottom = box.right_bottom,
+    --     width = 3,
+    --     surface = entity.surface_index,
+    --     players = { iterator.player_index },
+    --   })
+    -- end
     entity_data = {
       box_border = box_border,
       box = rendering.draw_rectangle({
