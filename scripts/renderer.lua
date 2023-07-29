@@ -93,9 +93,11 @@ local pipe_types = {
 --- @class Renderer
 local renderer = {}
 
+--- @param iterator Iterator
 --- @param system FluidSystemData
-function renderer.clear(system)
-  for _, entity_data in pairs(system.entities) do
+function renderer.clear(iterator, system)
+  local entities = system.entities
+  for _, entity_data in pairs(entities) do
     for _, connection_data in pairs(entity_data.connections) do
       if connection_data.line and rendering.is_valid(connection_data.line) then
         rendering.destroy(connection_data.line)
@@ -109,6 +111,13 @@ function renderer.clear(system)
       if connection_data.shape_border and rendering.is_valid(connection_data.shape_border) then
         rendering.destroy(connection_data.shape_border)
       end
+    end
+  end
+  system.entities = {}
+  for unit_number, entity_data in pairs(entities) do
+    local unified_data = iterator.entities[unit_number]
+    if unified_data then
+      renderer.draw_box(iterator, entity_data.entity)
     end
   end
 end
@@ -147,6 +156,7 @@ function renderer.start_connection(iterator, entity_data, connection_index, conn
     source_flow_direction = connection.flow_direction,
     source_position = source_position,
     source_unit_number = entity_data.unit_number,
+    target_flow_direction = "input-output", -- Temporary
     target_position = target_position,
     target = target_owner,
     target_unit_number = target_owner.unit_number,
@@ -237,39 +247,58 @@ end
 
 --- @param iterator Iterator
 --- @param entity LuaEntity
-function renderer.draw_entity(iterator, entity)
-  -- if pipe_types[entity.type] then
-  --   return
-  -- end
+function renderer.draw_box(iterator, entity)
+  if pipe_types[entity.type] then
+    return
+  end
 
-  -- local entity_data = get_entity_data(entity, player_index)
-  -- if not entity_data.box then
-  --   local box = flib_bounding_box.resize(flib_bounding_box.ceil(entity.bounding_box), -0.15)
-  --   entity_data.box_border = rendering.draw_rectangle({
-  --     color = {},
-  --     left_top = box.left_top,
-  --     right_bottom = box.right_bottom,
-  --     width = 3,
-  --     surface = entity.surface_index,
-  --     players = { player_index },
-  --   })
-  --   entity_data.box = rendering.draw_rectangle({
-  --     color = { r = color.r * 0.4, g = color.g * 0.4, b = color.b * 0.4, a = 0.4 },
-  --     left_top = box.left_top,
-  --     right_bottom = box.right_bottom,
-  --     filled = true,
-  --     surface = entity.surface_index,
-  --     players = { player_index },
-  --   })
-  --   entity_data.box_color_fluid_system_id = fluid_system_id
-  --   return
-  -- end
+  local entity_data = iterator.entities[
+    entity.unit_number --[[@as uint]]
+  ]
+  if not entity_data then
+    local box = flib_bounding_box.resize(flib_bounding_box.ceil(entity.bounding_box), -0.15)
+    entity_data = {
+      box_border = rendering.draw_rectangle({
+        color = {},
+        filled = false,
+        left_top = box.left_top,
+        right_bottom = box.right_bottom,
+        width = 3,
+        surface = entity.surface_index,
+        players = { iterator.player_index },
+      }),
+      box = rendering.draw_rectangle({
+        color = {},
+        filled = true,
+        left_top = box.left_top,
+        right_bottom = box.right_bottom,
+        surface = entity.surface_index,
+        players = { iterator.player_index },
+      }),
+      entity = entity,
+      unit_number = entity.unit_number,
+    }
+    iterator.entities[entity.unit_number] = entity_data
+  end
 
-  -- if fluid_system_id >= entity_data.box_color_fluid_system_id then
-  --   return
-  -- end
-  -- entity_data.box_color_fluid_system_id = fluid_system_id
-  -- rendering.set_color(entity_data.box, { r = color.r * 0.4, g = color.g * 0.4, b = color.b * 0.4, a = 0.4 })
+  --- @type Color
+  local color = {}
+  --- @type FluidSystemID
+  local highest_id = 0
+  for _, system in pairs(iterator.systems) do
+    if system.id > highest_id and system.entities[entity_data.unit_number] then
+      color = system.color
+      highest_id = system.id
+    end
+  end
+  if highest_id > 0 then
+    rendering.set_color(entity_data.box, { r = color.r * 0.4, g = color.g * 0.4, b = color.b * 0.4, a = 0.4 })
+  else
+    -- Clear box if there are no more entities
+    rendering.destroy(entity_data.box_border)
+    rendering.destroy(entity_data.box)
+    iterator.entities[entity_data.unit_number] = nil
+  end
 end
 
 return renderer

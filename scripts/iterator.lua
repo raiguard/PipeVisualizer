@@ -21,7 +21,8 @@ local renderer = require("__PipeVisualizer__/scripts/renderer")
 --- @class UnifiedEntityData
 --- @field box_border RenderObjectID
 --- @field box RenderObjectID
---- @field systems table<FluidSystemID, EntityData>
+--- @field entity LuaEntity
+--- @field unit_number UnitNumber
 
 --- @param starting_entity LuaEntity
 --- @param player_index PlayerIndex
@@ -35,6 +36,7 @@ local function request(starting_entity, player_index, in_overlay)
   if not iterator then
     --- @type Iterator
     iterator = {
+      entities = {},
       in_overlay = in_overlay,
       objects = {},
       player_index = player_index,
@@ -149,6 +151,7 @@ local function iterate_entity(iterator, entity)
 
     ::continue::
   end
+  renderer.draw_box(iterator, entity)
 end
 
 --- @param iterator Iterator
@@ -166,7 +169,7 @@ end
 --- @param iterator Iterator
 --- @param system FluidSystemData
 local function clear(iterator, system)
-  renderer.clear(system)
+  renderer.clear(iterator, system)
   iterator.systems[system.id] = nil
   if not next(iterator.systems) then
     global.iterator[iterator.player_index] = nil
