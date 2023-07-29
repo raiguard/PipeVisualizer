@@ -77,7 +77,7 @@ local function generate_fluid_colors()
   local colors = {}
   for name, fluid in pairs(game.fluid_prototypes) do
     local h, s, v, a = rgb_to_hsv(fluid.base_color)
-    v = math.max(v, 0.8)
+    v = 1
     colors[name] = hsv_to_rgb(h, s, v, a)
   end
   global.fluid_colors = colors
