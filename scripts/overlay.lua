@@ -133,9 +133,9 @@ local function update_overlay(self)
   if self.last_position and flib_position.eq(position, self.last_position) then
     return
   end
-  local box = flib_bounding_box.from_dimensions(position, self.dimensions.width, self.dimensions.height)
-  rendering.set_left_top(self.background, box.left_top)
-  rendering.set_right_bottom(self.background, box.right_bottom)
+  rendering.set_target(self.background, position)
+  rendering.set_x_scale(self.background, self.dimensions.width)
+  rendering.set_y_scale(self.background, self.dimensions.height)
 
   local areas = get_areas(self, position)
 
@@ -149,12 +149,11 @@ end
 --- @param player LuaPlayer
 --- @return Overlay
 local function create_overlay(player)
-  local opacity = player.mod_settings["pv-overlay-opacity"].value --[[@as float]]
-  local background = rendering.draw_rectangle({
-    color = { a = opacity },
-    filled = true,
-    left_top = { 0, 0 },
-    right_bottom = { 0, 0 },
+  local background = rendering.draw_sprite({
+    sprite = "pv-entity-box",
+    tint = {},
+    render_layer = "arrow",
+    target = player.position,
     surface = player.surface,
     players = { player },
   })

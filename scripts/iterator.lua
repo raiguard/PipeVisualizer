@@ -136,11 +136,13 @@ local function draw_entity(iterator, entity_data)
   local fluidbox = entity_data.fluidbox
   if complex_type then
     local box = flib_bounding_box.resize(entity_data.entity.selection_box, -0.1)
-    entity_data.shape = rendering.draw_rectangle({
-      color = default_color,
-      filled = true,
-      left_top = box.left_top,
-      right_bottom = box.right_bottom,
+    entity_data.shape = rendering.draw_sprite({
+      sprite = "pv-entity-box",
+      tint = default_color,
+      x_scale = flib_bounding_box.width(box),
+      y_scale = flib_bounding_box.height(box),
+      render_layer = "cursor",
+      target = entity_data.entity.position,
       surface = entity_data.entity.surface_index,
       players = { iterator.player_index },
     })
@@ -182,9 +184,11 @@ local function draw_entity(iterator, entity_data)
         if connection.flow_direction == "input" then
           direction = (direction + 4) % 8 -- Opposite
         end
-        entity_data.connections[#entity_data.connections + 1] = rendering.draw_polygon({
-          color = color,
-          vertices = connection.flow_direction == "input-output" and inner_rectangle_points or inner_triangle_points,
+        entity_data.connections[#entity_data.connections + 1] = rendering.draw_sprite({
+          sprite = connection.flow_direction == "input-output" and "utility/fluid_indication_arrow_both_ways"
+            or "utility/fluid_indication_arrow",
+          tint = color,
+          render_layer = "cursor",
           orientation = direction / 8,
           target = boundary_position,
           surface = entity_data.entity.surface_index,
@@ -244,9 +248,6 @@ local function draw_entity(iterator, entity_data)
     ::continue::
   end
   if entity_data.shape and shape_color then
-    if complex_type then
-      shape_color = { r = shape_color.r * 0.4, g = shape_color.g * 0.4, b = shape_color.b * 0.4, a = 0.4 }
-    end
     rendering.set_color(entity_data.shape, shape_color)
   end
 end
