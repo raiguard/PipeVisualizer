@@ -109,17 +109,6 @@ local function get_cardinal_direction(from, to)
   end
 end
 
-local inner_triangle_points =
-  { { target = { -0.296, 0.172 } }, { target = { 0, -0.109 } }, { target = { 0.296, 0.172 } } }
-
-local inner_rectangle_points = {
-  { target = { -0.148, -0.0545 } },
-  { target = { 0.148, -0.0545 } },
-  { target = { 0.148, 0.0545 } },
-  { target = { -0.148, 0.0545 } },
-  { target = { -0.148, -0.0545 } },
-}
-
 local pipe_types = {
   ["infinity-pipe"] = true,
   ["pipe-to-ground"] = true,
@@ -141,7 +130,7 @@ local function draw_entity(iterator, entity_data)
       tint = default_color,
       x_scale = flib_bounding_box.width(box),
       y_scale = flib_bounding_box.height(box),
-      render_layer = "cursor",
+      render_layer = "187",
       target = entity_data.entity.position,
       surface = entity_data.entity.surface_index,
       players = { iterator.player_index },
@@ -184,11 +173,14 @@ local function draw_entity(iterator, entity_data)
         if connection.flow_direction == "input" then
           direction = (direction + 4) % 8 -- Opposite
         end
+        local sprite = "pv-fluid-arrow-" .. connection.flow_direction
+        if connection.flow_direction ~= "input-output" and not pipe_types[connection.target.owner.type] then
+          sprite = "pv-fluid-arrow"
+        end
         entity_data.connections[#entity_data.connections + 1] = rendering.draw_sprite({
-          sprite = connection.flow_direction == "input-output" and "utility/fluid_indication_arrow_both_ways"
-            or "utility/fluid_indication_arrow",
+          sprite = sprite,
           tint = color,
-          render_layer = "cursor",
+          render_layer = "191",
           orientation = direction / 8,
           target = boundary_position,
           surface = entity_data.entity.surface_index,
