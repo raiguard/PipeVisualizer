@@ -14,7 +14,7 @@ local flib_queue = require("__flib__/queue")
 --- @field connections RenderObjectID[]
 --- @field entity LuaEntity
 --- @field fluidbox LuaFluidBox
---- @field shape RenderObjectID
+--- @field shape RenderObjectID?
 --- @field pending_connections ConnectionData[]
 
 --- @class FluidSystemData
@@ -111,7 +111,6 @@ end
 
 local inner_triangle_points =
   { { target = { -0.296, 0.172 } }, { target = { 0, -0.109 } }, { target = { 0.296, 0.172 } } }
-local outer_triangle_points = { { target = { -0.42, 0.22 } }, { target = { 0, -0.175 } }, { target = { 0.42, 0.22 } } }
 
 local inner_rectangle_points = {
   { target = { -0.148, -0.0545 } },
@@ -119,55 +118,6 @@ local inner_rectangle_points = {
   { target = { 0.148, 0.0545 } },
   { target = { -0.148, 0.0545 } },
   { target = { -0.148, -0.0545 } },
-}
-local outer_rectangle_points = {
-  { target = { -0.21, -0.11 } },
-  { target = { 0.21, -0.11 } },
-  { target = { 0.21, 0.11 } },
-  { target = { -0.21, 0.11 } },
-  { target = { -0.21, -0.11 } },
-}
-
--- 2 pixels; 2/32 of a tile
-local line_radius = 0.0625
-
---- @type table<defines.direction, ScriptRenderVertexTarget>
-local starting_box_corners = {
-  [defines.direction.north] = { target = { x = -line_radius, y = line_radius } },
-  [defines.direction.east] = { target = { x = -line_radius, y = -line_radius } },
-  [defines.direction.south] = { target = { x = line_radius, y = -line_radius } },
-  [defines.direction.west] = { target = { x = line_radius, y = line_radius } },
-}
-
-local pipe_vertices = {
-  [defines.direction.north] = {
-    -- { target = { x = -line_radius, y = line_radius } },
-    { target = { x = -line_radius, y = -0.5 } },
-    { target = { x = line_radius, y = -0.5 } },
-    { target = { x = line_radius, y = line_radius } },
-    { target = { x = -line_radius, y = line_radius } },
-  },
-  [defines.direction.east] = {
-    -- { target = { x = -line_radius, y = -line_radius } },
-    { target = { x = 0.5, y = -line_radius } },
-    { target = { x = 0.5, y = line_radius } },
-    { target = { x = -line_radius, y = line_radius } },
-    { target = { x = -line_radius, y = -line_radius } },
-  },
-  [defines.direction.south] = {
-    -- { target = { x = line_radius, y = -line_radius } },
-    { target = { x = line_radius, y = 0.5 } },
-    { target = { x = -line_radius, y = 0.5 } },
-    { target = { x = -line_radius, y = -line_radius } },
-    { target = { x = line_radius, y = -line_radius } },
-  },
-  [defines.direction.west] = {
-    -- { target = { x = line_radius, y = line_radius } },
-    { target = { x = -0.5, y = line_radius } },
-    { target = { x = -0.5, y = -line_radius } },
-    { target = { x = line_radius, y = -line_radius } },
-    { target = { x = line_radius, y = line_radius } },
-  },
 }
 
 local pipe_types = {
@@ -184,8 +134,6 @@ local default_color = { r = 0.32, g = 0.32, b = 0.32, a = 0.4 }
 local function draw_entity(iterator, entity_data)
   local complex_type = not pipe_types[entity_data.entity.type]
   local fluidbox = entity_data.fluidbox
-  --- @type ScriptRenderVertexTarget[]
-  local vertices
   if complex_type then
     local box = flib_bounding_box.resize(entity_data.entity.selection_box, -0.1)
     entity_data.shape = rendering.draw_rectangle({
@@ -193,16 +141,6 @@ local function draw_entity(iterator, entity_data)
       filled = true,
       left_top = box.left_top,
       right_bottom = box.right_bottom,
-      surface = entity_data.entity.surface_index,
-      players = { iterator.player_index },
-    })
-  else
-    vertices = {}
-    entity_data.shape = rendering.draw_polygon({
-      color = default_color,
-      filled = true,
-      target = entity_data.entity.position,
-      vertices = { starting_box_corners[defines.direction.west] },
       surface = entity_data.entity.surface_index,
       players = { iterator.player_index },
     })
@@ -230,9 +168,6 @@ local function draw_entity(iterator, entity_data)
       --- @cast connection_index uint
       local connection = pipe_connections[connection_index]
       local direction = get_cardinal_direction(connection.position, connection.target_position)
-      if vertices then
-        vertices[#vertices + 1] = starting_box_corners[direction]
-      end
 
       if not connection.target then
         goto inner_continue
@@ -255,12 +190,15 @@ local function draw_entity(iterator, entity_data)
           surface = entity_data.entity.surface_index,
           players = { iterator.player_index },
         })
-      elseif vertices then
-        -- TODO: Account for selection box instead of using hardcoded numbers
-        -- local selection_box = entity_data.entity.prototype.selection_box
-        for _, vertex in pairs(pipe_vertices[direction]) do
-          vertices[#vertices + 1] = vertex
-        end
+      else
+        entity_data.connections[#entity_data.connections + 1] = rendering.draw_line({
+          color = color,
+          width = 4,
+          from = connection.position,
+          to = boundary_position,
+          surface = entity_data.entity.surface_index,
+          players = { iterator.player_index },
+        })
       end
 
       if connection.connection_type == "underground" then
@@ -305,15 +243,11 @@ local function draw_entity(iterator, entity_data)
 
     ::continue::
   end
-  if shape_color then
+  if entity_data.shape and shape_color then
     if complex_type then
       shape_color = { r = shape_color.r * 0.4, g = shape_color.g * 0.4, b = shape_color.b * 0.4, a = 0.4 }
     end
     rendering.set_color(entity_data.shape, shape_color)
-  end
-  if vertices then
-    vertices[#vertices + 1] = starting_box_corners[defines.direction.north]
-    rendering.set_vertices(entity_data.shape, vertices)
   end
 end
 
@@ -330,7 +264,6 @@ local function iterate_entity(iterator, entity)
     connections = {},
     entity = entity,
     fluidbox = entity.fluidbox,
-    shape = 0, -- Temporary
     pending_connections = {},
   }
   iterator.entities[entity.unit_number] = entity_data
@@ -354,56 +287,6 @@ local function iterate_entity(iterator, entity)
       flib_queue.push_back(iterator.queue, neighbour_fluidbox.owner)
     end
 
-    -- local entity_data = system.entities[entity.unit_number]
-    -- if not entity_data then
-    --   --- @type EntityData
-    --   entity_data = {
-    --     connections = {},
-    --     entity = entity,
-    --     position = entity.position,
-    --     surface_index = entity.surface_index,
-    --     type = entity.type,
-    --     unit_number = entity.unit_number,
-    --   }
-    --   system.entities[entity.unit_number] = entity_data
-    -- end
-
-    -- --- @type table<integer, ConnectionData>
-    -- local existing_connections = {}
-    -- local connections = fluidbox.get_pipe_connections(fluidbox_index)
-    -- for connection_index = 1, #connections do
-    --   if entity_data.connections[connection_index] then
-    --     goto inner_continue
-    --   end
-    --   local connection = connections[connection_index]
-    --   if not connection.target then
-    --     goto inner_continue
-    --   end
-
-    --   local target_owner = connection.target.owner
-
-    --   local target_data = system.entities[target_owner.unit_number]
-    --   if target_data then
-    --     local connection_data = target_data.connections[connection.target_pipe_connection_index]
-    --     entity_data.connections[connection_index] = connection_data
-    --     connection_data.target_flow_direction = connection.flow_direction
-    --     existing_connections[connection_index] = connection_data
-    --     goto inner_continue
-    --   end
-
-    --   renderer.start_connection(iterator, entity_data, connection_index, connection)
-
-    --   if not iterator.in_overlay then
-    --     flib_queue.push_back(iterator.queue, target_owner)
-    --   end
-
-    --   ::inner_continue::
-    -- end
-
-    -- for _, connection_data in pairs(existing_connections) do
-    --   renderer.finish_connection(iterator, system, entity_data, connection_data)
-    -- end
-
     ::continue::
   end
 end
@@ -414,7 +297,7 @@ local function iterate(iterator, entities_per_tick)
   for _ = 1, entities_per_tick do
     local entity = flib_queue.pop_front(iterator.queue)
     if not entity then
-      return
+      break
     end
     iterate_entity(iterator, entity)
   end
@@ -424,7 +307,9 @@ end
 --- @param system FluidSystemData
 local function clear(iterator, system)
   for unit_number, entity_data in pairs(system.entities) do
-    rendering.destroy(entity_data.shape)
+    if entity_data.shape then
+      rendering.destroy(entity_data.shape)
+    end
     for _, shape in pairs(entity_data.connections) do
       rendering.destroy(shape)
     end
@@ -446,7 +331,9 @@ local function clear_all(player_index)
     return
   end
   for _, entity_data in pairs(iterator.entities) do
-    rendering.destroy(entity_data.shape)
+    if entity_data.shape then
+      rendering.destroy(entity_data.shape)
+    end
     for _, shape in pairs(entity_data.connections) do
       rendering.destroy(shape)
     end
@@ -487,7 +374,7 @@ local function on_tick()
   if not global.iterator then
     return
   end
-  local entities_per_tick = math.ceil(100 / table_size(global.iterator))
+  local entities_per_tick = math.ceil(30 / table_size(global.iterator))
   -- local entities_per_tick = 1
   for _, iterator in pairs(global.iterator) do
     iterate(iterator, entities_per_tick)
