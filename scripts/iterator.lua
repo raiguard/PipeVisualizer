@@ -109,6 +109,12 @@ local function get_cardinal_direction(from, to)
   end
 end
 
+local layers = {
+  arrow = "255",
+  line = "254",
+  entity = "253",
+}
+
 local pipe_types = {
   ["infinity-pipe"] = true,
   ["pipe-to-ground"] = true,
@@ -130,7 +136,7 @@ local function draw_entity(iterator, entity_data)
       tint = default_color,
       x_scale = flib_bounding_box.width(box),
       y_scale = flib_bounding_box.height(box),
-      render_layer = "187",
+      render_layer = layers.entity,
       target = entity_data.entity.position,
       surface = entity_data.entity.surface_index,
       players = { iterator.player_index },
@@ -180,7 +186,7 @@ local function draw_entity(iterator, entity_data)
         entity_data.connections[#entity_data.connections + 1] = rendering.draw_sprite({
           sprite = sprite,
           tint = color,
-          render_layer = "191",
+          render_layer = layers.arrow,
           orientation = direction / 8,
           target = boundary_position,
           surface = entity_data.entity.surface_index,
