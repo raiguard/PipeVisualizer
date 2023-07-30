@@ -14,7 +14,7 @@ local max_overlay_size = 220 + 5
 --- @class Overlay
 --- @field background RenderObjectID
 --- @field dimensions DisplayResolution
---- @field last_position MapPosition
+--- @field last_position MapPosition?
 --- @field player LuaPlayer
 
 --- @param self Overlay

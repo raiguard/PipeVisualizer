@@ -1,35 +1,8 @@
+--- @diagnostic disable
+
 local flib_bounding_box = require("__flib__/bounding-box")
 local flib_direction = require("__flib__/direction")
 local flib_position = require("__flib__/position")
-
---- @class EntityData
---- @field connections ConnectionData[]
---- @field entity LuaEntity
---- @field position MapPosition
---- @field surface_index uint
---- @field type string
---- @field unit_number UnitNumber
-
---- @class ConnectionData
---- @field connection PipeConnection
---- @field direction defines.direction
---- @field has_shape boolean
---- @field is_underground boolean
---- @field line_border RenderObjectID?
---- @field line RenderObjectID?
---- @field shape_border RenderObjectID?
---- @field shape_position MapPosition
---- @field shape RenderObjectID?
---- @field source_flow_direction FlowDirection
---- @field source LuaEntity
---- @field source_position MapPosition
---- @field source_unit_number uint
---- @field target_flow_direction FlowDirection
---- @field target LuaEntity
---- @field target_position MapPosition
---- @field target_unit_number uint
-
---- @alias FlowDirection "input"|"output"|"input-output"
 
 --- Assumes that the positions are in exact cardinals.
 --- @param from MapPosition

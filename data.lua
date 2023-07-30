@@ -80,3 +80,9 @@ data:extend({
     toggleable = true,
   },
 })
+
+local storage_tank = table.deepcopy(data.raw["storage-tank"]["storage-tank"])
+storage_tank.name = "cursed-storage-tank"
+storage_tank.fluid_box.pipe_connections[1].max_underground_distance = 5
+storage_tank.fluid_box.pipe_connections[3].max_underground_distance = 5
+data:extend({ storage_tank })
