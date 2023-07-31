@@ -1,4 +1,5 @@
 local flib_bounding_box = require("__flib__/bounding-box")
+local flib_position = require("__flib__/position")
 local flib_queue = require("__flib__/queue")
 
 --- @alias FlowDirection "input"|"output"|"input-output"
@@ -6,7 +7,7 @@ local flib_queue = require("__flib__/queue")
 --- @alias PlayerIndex uint
 
 --- @class ConnectionData
---- @field boundary_position MapPosition
+--- @field position MapPosition
 --- @field connection_index uint
 --- @field fluidbox_index uint
 
@@ -110,15 +111,23 @@ local function get_cardinal_direction(from, to)
 end
 
 local layers = {
-  arrow = "255",
-  line = "254",
-  entity = "253",
+  arrow = "195",
+  line = "194",
+  underground = "193",
+  entity = "192",
 }
 
 local pipe_types = {
   ["infinity-pipe"] = true,
   ["pipe-to-ground"] = true,
   ["pipe"] = true,
+}
+
+local encoded_directions = {
+  [defines.direction.north] = 1,
+  [defines.direction.east] = 2,
+  [defines.direction.south] = 4,
+  [defines.direction.west] = 8,
 }
 
 --- @type Color
@@ -141,10 +150,23 @@ local function draw_entity(iterator, entity_data)
       surface = entity_data.entity.surface_index,
       players = { iterator.player_index },
     })
+  else
+    local box = flib_bounding_box.ceil(entity_data.entity.selection_box)
+    entity_data.shape = rendering.draw_sprite({
+      sprite = "pv-pipe-connections-0",
+      tint = default_color,
+      x_scale = flib_bounding_box.width(box),
+      y_scale = flib_bounding_box.height(box),
+      render_layer = layers.line,
+      target = entity_data.entity.position,
+      surface = entity_data.entity.surface_index,
+      players = { iterator.player_index },
+    })
   end
   --- @type Color?
   local shape_color
   local highest_id = 0
+  local encoded_connections = 0
   for fluidbox_index = 1, #fluidbox do
     --- @cast fluidbox_index uint
     local id = fluidbox.get_fluid_system_id(fluidbox_index)
@@ -193,14 +215,7 @@ local function draw_entity(iterator, entity_data)
           players = { iterator.player_index },
         })
       else
-        entity_data.connections[#entity_data.connections + 1] = rendering.draw_line({
-          color = color,
-          width = 4,
-          from = connection.position,
-          to = boundary_position,
-          surface = entity_data.entity.surface_index,
-          players = { iterator.player_index },
-        })
+        encoded_connections = bit32.bor(encoded_connections, encoded_directions[direction])
       end
 
       if connection.connection_type == "underground" then
@@ -216,18 +231,22 @@ local function draw_entity(iterator, entity_data)
             then
               found = true
               target_entity_data.pending_connections[i] = nil
-              entity_data.connections[#entity_data.connections + 1] = rendering.draw_line({
-                color = color,
-                width = 4,
-                surface = entity_data.entity.surface_index,
-                from = boundary_position,
-                to = pending.boundary_position,
-                dash_length = 0.25,
-                gap_length = 0.75,
-                dash_offset = 0.875,
-                players = { iterator.player_index },
-              })
-              break
+              local distance = flib_position.distance(connection.position, pending.position)
+              if distance > 1 then
+                for i = 1, distance - 1 do
+                  local target = flib_position.lerp(connection.position, pending.position, i / distance)
+                  entity_data.connections[#entity_data.connections + 1] = rendering.draw_sprite({
+                    sprite = "pv-underground-connection",
+                    tint = color,
+                    render_layer = layers.underground,
+                    orientation = direction / 8,
+                    target = target,
+                    surface = entity_data.entity.surface_index,
+                    players = { iterator.player_index },
+                  })
+                end
+                break
+              end
             end
           end
         end
@@ -235,7 +254,7 @@ local function draw_entity(iterator, entity_data)
           entity_data.pending_connections[#entity_data.pending_connections + 1] = {
             fluidbox_index = fluidbox_index,
             connection_index = connection_index,
-            boundary_position = boundary_position,
+            position = connection.position,
           }
         end
       end
@@ -247,6 +266,9 @@ local function draw_entity(iterator, entity_data)
   end
   if entity_data.shape and shape_color then
     rendering.set_color(entity_data.shape, shape_color)
+  end
+  if encoded_connections > 0 then
+    rendering.set_sprite(entity_data.shape, "pv-pipe-connections-" .. encoded_connections)
   end
 end
 

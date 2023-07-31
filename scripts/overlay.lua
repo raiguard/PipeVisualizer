@@ -152,7 +152,7 @@ local function create_overlay(player)
   local background = rendering.draw_sprite({
     sprite = "pv-entity-box",
     tint = {},
-    render_layer = "252",
+    render_layer = "191",
     target = player.position,
     surface = player.surface,
     players = { player },

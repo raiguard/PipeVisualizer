@@ -92,7 +92,18 @@ data:extend({
     type = "sprite",
     name = "pv-entity-box",
     filename = "__PipeVisualizer__/graphics/entity-box.png",
-    size = 32,
+    size = 64,
+    scale = 0.5,
+    flags = { "icon" },
+    draw_as_glow = true,
+  },
+  {
+    type = "sprite",
+    name = "pv-underground-connection",
+    filename = "__PipeVisualizer__/graphics/underground-connection.png",
+    size = 64,
+    scale = 0.5,
+    flags = { "icon" },
     draw_as_glow = true,
   },
   {
@@ -132,3 +143,18 @@ data:extend({
     draw_as_glow = true,
   },
 })
+
+for i = 0, 15 do
+  data:extend({
+    {
+      type = "sprite",
+      name = "pv-pipe-connections-" .. i,
+      filename = "__PipeVisualizer__/graphics/pipe-connections.png",
+      x = i * 64,
+      size = 64,
+      scale = 0.5,
+      flags = { "icon" },
+      draw_as_glow = true,
+    },
+  })
+end
