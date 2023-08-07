@@ -12,24 +12,18 @@ local flib_queue = require("__flib__/queue")
 --- @field fluidbox_index uint
 
 --- @class EntityData
---- @field connections RenderObjectID[]
+--- @field connections table<FluidSystemID, RenderObjectID[]>
 --- @field entity LuaEntity
 --- @field fluidbox LuaFluidBox
 --- @field shape RenderObjectID?
 --- @field pending_connections ConnectionData[]
-
---- @class FluidSystemData
---- @field color Color
---- @field entities table<UnitNumber, EntityData>
---- @field id FluidSystemID
-
+--- @field unit_number UnitNumber
 --- @class Iterator
 --- @field entities table<UnitNumber, EntityData>
 --- @field in_overlay boolean
---- @field objects RenderObjectID[]
 --- @field player_index PlayerIndex
 --- @field queue Queue<LuaEntity>
---- @field systems table<FluidSystemID, FluidSystemData>
+--- @field systems table<FluidSystemID, Color>
 
 --- @param starting_entity LuaEntity
 --- @param player_index PlayerIndex
@@ -45,14 +39,16 @@ local function request(starting_entity, player_index, in_overlay)
     iterator = {
       entities = {},
       in_overlay = in_overlay,
-      objects = {},
       player_index = player_index,
       queue = flib_queue.new(),
       systems = {},
     }
   end
 
-  local should_iterate = false
+  local entity_data = iterator.entities[
+    starting_entity.unit_number --[[@as uint]]
+  ]
+  local to_iterate = entity_data and entity_data.connections or {}
   local fluidbox = starting_entity.fluidbox
   for i = 1, #fluidbox do
     --- @cast i uint
@@ -62,10 +58,8 @@ local function request(starting_entity, player_index, in_overlay)
     end
 
     local system = iterator.systems[id]
-    if system then
-      if not system.entities[starting_entity.unit_number] then
-        should_iterate = true
-      end
+    if system and not to_iterate[id] then
+      to_iterate[id] = {}
       goto continue
     end
 
@@ -76,12 +70,7 @@ local function request(starting_entity, player_index, in_overlay)
       color = global.fluid_colors[next(contents)]
     end
 
-    --- @type FluidSystemData
-    iterator.systems[id] = {
-      color = color,
-      entities = {},
-      id = id,
-    }
+    iterator.systems[id] = color
 
     should_iterate = true
 
@@ -173,14 +162,18 @@ local function draw_entity(iterator, entity_data)
     if not id then
       goto continue
     end
-    local system_data = iterator.systems[id]
-    if not system_data then
+    local color = iterator.systems[id]
+    if not color then
       goto continue
     end
-    local color = system_data.color
     if id > highest_id then
       shape_color = color
       highest_id = id
+    end
+    local shapes = entity_data.connections[id]
+    if not shapes then
+      shapes = {}
+      entity_data.connections[id] = shapes
     end
     local pipe_connections = fluidbox.get_pipe_connections(fluidbox_index)
     for connection_index = 1, #pipe_connections do
@@ -205,7 +198,7 @@ local function draw_entity(iterator, entity_data)
         if connection.flow_direction ~= "input-output" and not pipe_types[connection.target.owner.type] then
           sprite = "pv-fluid-arrow"
         end
-        entity_data.connections[#entity_data.connections + 1] = rendering.draw_sprite({
+        shapes[#shapes + 1] = rendering.draw_sprite({
           sprite = sprite,
           tint = color,
           render_layer = layers.arrow,
@@ -235,7 +228,7 @@ local function draw_entity(iterator, entity_data)
               if distance > 1 then
                 for i = 1, distance - 1 do
                   local target = flib_position.lerp(connection.position, pending.position, i / distance)
-                  entity_data.connections[#entity_data.connections + 1] = rendering.draw_sprite({
+                  shapes[#shapes + 1] = rendering.draw_sprite({
                     sprite = "pv-underground-connection",
                     tint = color,
                     render_layer = layers.underground,
@@ -273,19 +266,51 @@ local function draw_entity(iterator, entity_data)
 end
 
 --- @param iterator Iterator
+--- @param entity_data EntityData
+--- @param fluid_system_id FluidSystemID?
+local function clear_entity(iterator, entity_data, fluid_system_id)
+  if fluid_system_id then
+    for _, shape in pairs(entity_data.connections[fluid_system_id]) do
+      rendering.destroy(shape)
+    end
+    entity_data.connections[fluid_system_id] = nil
+  else
+    for id, shapes in pairs(entity_data.connections) do
+      for _, shape in pairs(shapes) do
+        rendering.destroy(shape)
+      end
+      entity_data.connections[id] = nil
+    end
+  end
+  if entity_data.shape then
+    rendering.destroy(entity_data.shape)
+  end
+  if next(entity_data.connections) then
+    draw_entity(iterator, entity_data)
+    return
+  end
+  iterator.entities[entity_data.unit_number] = nil
+end
+
+--- @param iterator Iterator
 --- @param entity LuaEntity
 local function iterate_entity(iterator, entity)
   local entity_data = iterator.entities[
     entity.unit_number --[[@as uint]]
   ]
   if entity_data then
-    return
+    if #entity_data.fluidbox == 1 then
+      return
+    end
+    clear_entity(iterator, entity_data)
   end
+  --- @type EntityData
   entity_data = {
     connections = {},
     entity = entity,
     fluidbox = entity.fluidbox,
     pending_connections = {},
+    unit_number = entity.unit_number,
   }
   iterator.entities[entity.unit_number] = entity_data
 
@@ -303,7 +328,7 @@ local function iterate_entity(iterator, entity)
     if not system then
       goto continue
     end
-    system.entities[entity.unit_number] = entity_data
+    -- system.entities[entity.unit_number] = entity_data
     for _, neighbour_fluidbox in pairs(fluidbox.get_connections(fluidbox_index)) do
       flib_queue.push_back(iterator.queue, neighbour_fluidbox.owner)
     end
@@ -325,18 +350,14 @@ local function iterate(iterator, entities_per_tick)
 end
 
 --- @param iterator Iterator
---- @param system FluidSystemData
-local function clear(iterator, system)
-  for unit_number, entity_data in pairs(system.entities) do
-    if entity_data.shape then
-      rendering.destroy(entity_data.shape)
+--- @param system_id FluidSystemID
+local function clear(iterator, system_id)
+  iterator.systems[system_id] = nil
+  for _, entity_data in pairs(iterator.entities) do
+    if entity_data.connections[system_id] then
+      clear_entity(iterator, entity_data, system_id)
     end
-    for _, shape in pairs(entity_data.connections) do
-      rendering.destroy(shape)
-    end
-    iterator.entities[unit_number] = nil
   end
-  iterator.systems[system.id] = nil
   if not next(iterator.systems) then
     global.iterator[iterator.player_index] = nil
   end
@@ -355,8 +376,10 @@ local function clear_all(player_index)
     if entity_data.shape then
       rendering.destroy(entity_data.shape)
     end
-    for _, shape in pairs(entity_data.connections) do
-      rendering.destroy(shape)
+    for _, shapes in pairs(entity_data.connections) do
+      for _, shape in pairs(shapes) do
+        rendering.destroy(shape)
+      end
     end
   end
   global.iterator[player_index] = nil
@@ -386,7 +409,7 @@ local function request_or_clear(starting_entity, player_index)
     --- @cast fluidbox_index uint
     local id = fluidbox.get_fluid_system_id(fluidbox_index)
     if id and iterator.systems[id] then
-      clear(iterator, iterator.systems[id])
+      clear(iterator, id)
     end
   end
 end
