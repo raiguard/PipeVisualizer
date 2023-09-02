@@ -16,27 +16,23 @@ local flib_queue = require("__flib__/queue")
 --- @field entity LuaEntity
 --- @field fluidbox LuaFluidBox
 --- @field shape RenderObjectID?
---- @field pending_connections ConnectionData[]
 --- @field unit_number UnitNumber
 
 --- @class Iterator
 --- @field entities table<UnitNumber, EntityData>
 --- @field in_overlay boolean
 --- @field player_index PlayerIndex
---- @field queue Queue<ToIterate>
+--- @field queue Queue<LuaEntity>
 --- @field systems table<FluidSystemID, Color>
 
---- @class ToIterate
---- @field entity LuaEntity
---- @field update_neighbours boolean
-
---- @param starting_entity LuaEntity
+--- @param entity LuaEntity
 --- @param player_index PlayerIndex
 --- @param in_overlay boolean
 --- @param update_neighbours boolean
-local function request(starting_entity, player_index, in_overlay, update_neighbours)
+--- @return boolean accepted
+local function request(entity, player_index, in_overlay, update_neighbours)
   if not global.iterator then
-    return
+    return false
   end
 
   local iterator = global.iterator[player_index]
@@ -51,7 +47,7 @@ local function request(starting_entity, player_index, in_overlay, update_neighbo
     }
   end
 
-  local fluidbox = starting_entity.fluidbox
+  local fluidbox = entity.fluidbox
   local should_iterate = false
   for i = 1, #fluidbox do
     --- @cast i uint
@@ -82,9 +78,11 @@ local function request(starting_entity, player_index, in_overlay, update_neighbo
   end
 
   if should_iterate then
-    flib_queue.push_back(iterator.queue, { entity = starting_entity, update_neighbours = update_neighbours })
+    flib_queue.push_back(iterator.queue, entity)
     global.iterator[player_index] = iterator
   end
+
+  return should_iterate
 end
 
 --- Assumes that the positions are in exact cardinals.
@@ -190,11 +188,6 @@ local function draw_entity(iterator, entity_data, ignore_unit_number)
         goto inner_continue
       end
 
-      local boundary_position = {
-        x = connection.position.x + (connection.target_position.x - connection.position.x) / 2,
-        y = connection.position.y + (connection.target_position.y - connection.position.y) / 2,
-      }
-
       if is_complex_type then
         if connection.flow_direction == "input" then
           direction = (direction + 4) % 8 -- Opposite
@@ -208,7 +201,10 @@ local function draw_entity(iterator, entity_data, ignore_unit_number)
           tint = color,
           render_layer = layers.arrow,
           orientation = direction / 8,
-          target = boundary_position,
+          target = {
+            x = connection.position.x + (connection.target_position.x - connection.position.x) / 2,
+            y = connection.position.y + (connection.target_position.y - connection.position.y) / 2,
+          },
           surface = entity_data.entity.surface_index,
           players = { iterator.player_index },
         })
@@ -217,43 +213,27 @@ local function draw_entity(iterator, entity_data, ignore_unit_number)
       end
 
       if connection.connection_type == "underground" then
-        local found = false
-        local target_entity_data = iterator.entities[
-          connection.target.owner.unit_number --[[@as uint]]
-        ]
-        if target_entity_data then
-          for i, pending in pairs(target_entity_data.pending_connections) do
-            if
-              pending.fluidbox_index == connection.target_fluidbox_index
-              and pending.connection_index == connection.target_pipe_connection_index
-            then
-              found = true
-              target_entity_data.pending_connections[i] = nil
-              local distance = flib_position.distance(connection.position, pending.position)
-              if distance > 1 then
-                for i = 1, distance - 1 do
-                  local target = flib_position.lerp(connection.position, pending.position, i / distance)
-                  shapes[#shapes + 1] = rendering.draw_sprite({
-                    sprite = "pv-underground-connection",
-                    tint = color,
-                    render_layer = layers.underground,
-                    orientation = direction / 8,
-                    target = target,
-                    surface = entity_data.entity.surface_index,
-                    players = { iterator.player_index },
-                  })
-                end
-                break
-              end
-            end
-          end
+        if iterator.entities[connection.target.owner.unit_number] then
+          goto inner_continue
         end
-        if not found then
-          entity_data.pending_connections[#entity_data.pending_connections + 1] = {
-            fluidbox_index = fluidbox_index,
-            connection_index = connection_index,
-            position = connection.position,
-          }
+        local target_connection_data =
+          connection.target.get_pipe_connections(connection.target_fluidbox_index)[connection.target_pipe_connection_index]
+        local target_position = target_connection_data.position
+        local distance = flib_position.distance(connection.position, target_connection_data.position)
+        if distance > 1 then
+          for i = 1, distance - 1 do
+            local target = flib_position.lerp(connection.position, target_position, i / distance)
+            shapes[#shapes + 1] = rendering.draw_sprite({
+              sprite = "pv-underground-connection",
+              tint = color,
+              render_layer = layers.underground,
+              orientation = direction / 8,
+              target = target,
+              surface = entity_data.entity.surface_index,
+              players = { iterator.player_index },
+            })
+          end
+          break
         end
       end
 
@@ -270,10 +250,9 @@ local function draw_entity(iterator, entity_data, ignore_unit_number)
   end
 end
 
---- @param iterator Iterator
 --- @param entity_data EntityData
 --- @param fluid_system_id FluidSystemID?
-local function clear_entity(iterator, entity_data, fluid_system_id)
+local function clear_entity(entity_data, fluid_system_id)
   if fluid_system_id then
     for _, shape in pairs(entity_data.connections[fluid_system_id]) do
       rendering.destroy(shape)
@@ -290,18 +269,16 @@ local function clear_entity(iterator, entity_data, fluid_system_id)
   if entity_data.shape then
     rendering.destroy(entity_data.shape)
   end
-  if next(entity_data.connections) then
-    draw_entity(iterator, entity_data)
-    return
-  end
 end
 
 --- @param iterator Iterator
 --- @param entity_data EntityData
 --- @param fluid_system_id FluidSystemID?
 local function delete_entity(iterator, entity_data, fluid_system_id)
-  clear_entity(iterator, entity_data, fluid_system_id)
-  if not next(entity_data.connections) then
+  clear_entity(entity_data, fluid_system_id)
+  if next(entity_data.connections) then
+    draw_entity(iterator, entity_data)
+  else
     iterator.entities[entity_data.unit_number] = nil
   end
 end
@@ -310,21 +287,21 @@ end
 --- @param entity_data EntityData
 --- @param ignore_unit_number UnitNumber?
 local function update_entity(iterator, entity_data, ignore_unit_number)
-  clear_entity(iterator, entity_data)
+  clear_entity(entity_data)
   draw_entity(iterator, entity_data, ignore_unit_number)
 end
 
 --- @param iterator Iterator
 --- @param entity LuaEntity
---- @param update_neighbours boolean
-local function iterate_entity(iterator, entity, update_neighbours)
+--- @param force_iterate_neighbours boolean?
+local function iterate_entity(iterator, entity, force_iterate_neighbours)
+  if not entity.valid then
+    return
+  end
   local entity_data = iterator.entities[
     entity.unit_number --[[@as uint]]
   ]
   if entity_data then
-    if #entity_data.fluidbox == 1 then
-      return
-    end
     delete_entity(iterator, entity_data)
   end
   --- @type EntityData
@@ -332,38 +309,35 @@ local function iterate_entity(iterator, entity, update_neighbours)
     connections = {},
     entity = entity,
     fluidbox = entity.fluidbox,
-    pending_connections = {},
     unit_number = entity.unit_number,
   }
   iterator.entities[entity.unit_number] = entity_data
 
   draw_entity(iterator, entity_data)
 
-  if iterator.in_overlay and not update_neighbours then
+  if iterator.in_overlay and not force_iterate_neighbours then
     return
   end
 
   local fluidbox = entity.fluidbox
-  for fluidbox_index = 1, #fluidbox do
+  for fluidbox_index, neighbours in pairs(entity.neighbours) do
     --- @cast fluidbox_index uint
     local id = fluidbox.get_fluid_system_id(fluidbox_index)
+    if not id then
+      goto continue
+    end
     local system = iterator.systems[id]
     if not system then
       goto continue
     end
-    for _, neighbour_fluidbox in pairs(fluidbox.get_connections(fluidbox_index)) do
-      local neighbour = neighbour_fluidbox.owner
-      local neighbour_data = iterator.entities[neighbour.unit_number]
-      if neighbour_data then
-        if update_neighbours then
-          delete_entity(iterator, neighbour_data)
-        else
-          goto inner_continue
+    for _, neighbour in pairs(neighbours) do
+      local neighbour_unit_number = neighbour.unit_number
+      if neighbour_unit_number then
+        local neighbour_data = iterator.entities[neighbour_unit_number]
+        if force_iterate_neighbours or not neighbour_data or not neighbour_data.connections[id] then
+          flib_queue.push_back(iterator.queue, neighbour)
         end
       end
-      flib_queue.push_back(iterator.queue, { entity = neighbour, update_neighbours = false })
-
-      ::inner_continue::
     end
 
     ::continue::
@@ -374,11 +348,11 @@ end
 --- @param entities_per_tick integer
 local function iterate(iterator, entities_per_tick)
   for _ = 1, entities_per_tick do
-    local data = flib_queue.pop_front(iterator.queue)
-    if not data then
+    local entity = flib_queue.pop_front(iterator.queue)
+    if not entity then
       break
     end
-    iterate_entity(iterator, data.entity, data.update_neighbours)
+    iterate_entity(iterator, entity)
   end
 end
 
@@ -418,29 +392,24 @@ local function clear_all(player_index)
   global.iterator[player_index] = nil
 end
 
---- @param starting_entity LuaEntity
+--- @param entity LuaEntity
 --- @param player_index PlayerIndex
-local function request_or_clear(starting_entity, player_index)
+local function request_or_clear(entity, player_index)
   if not global.iterator then
     return
   end
   local iterator = global.iterator[player_index]
   if not iterator then
-    request(starting_entity, player_index, false, false)
+    request(entity, player_index, false, false)
     return
   end
   if iterator.in_overlay then
     return
   end
-  local fluidbox = starting_entity.fluidbox
-  for fluidbox_index = 1, #fluidbox do
-    --- @cast fluidbox_index uint
-    local id = fluidbox.get_fluid_system_id(fluidbox_index)
-    if id and not iterator.systems[id] then
-      request(starting_entity, player_index, false, false)
-      return
-    end
+  if request(entity, player_index, false, false) then
+    return
   end
+  local fluidbox = entity.fluidbox
   for fluidbox_index = 1, #fluidbox do
     --- @cast fluidbox_index uint
     local id = fluidbox.get_fluid_system_id(fluidbox_index)
@@ -494,6 +463,7 @@ iterator.clear_all = clear_all
 iterator.clear_entity = clear_entity
 iterator.delete_entity = delete_entity
 iterator.draw_entity = draw_entity
+iterator.iterate_entity = iterate_entity
 iterator.request = request
 iterator.update_entity = update_entity
 

@@ -33,30 +33,6 @@ local function is_relevant(iterator, entity)
   return false
 end
 
---- @param it Iterator
---- @param entity LuaEntity
---- @param delete boolean
-local function update_neighbours(it, entity, delete)
-  local ignore_unit_number = delete and entity.unit_number or nil
-  local fluidbox = entity.fluidbox
-  for i = 1, #fluidbox do
-    --- @cast i uint
-    local id = fluidbox.get_fluid_system_id(i)
-    if id and it.systems[id] then
-      for _, connection in pairs(fluidbox.get_connections(i)) do
-        local neighbour = connection.owner
-        local neighbour_unit_number = neighbour.unit_number
-        if neighbour_unit_number then
-          local neighbour_data = it.entities[neighbour.unit_number]
-          if neighbour_data then
-            iterator.update_entity(it, neighbour_data, ignore_unit_number)
-          end
-        end
-      end
-    end
-  end
-end
-
 --- @param e BuiltEvent
 local function on_entity_built(e)
   if not global.iterator then
@@ -74,8 +50,8 @@ local function on_entity_built(e)
   end
 
   for _, it in pairs(global.iterator) do
-    if not it.entities[unit_number] and is_relevant(it, entity) then
-      iterator.request(entity, it.player_index, it.in_overlay, true)
+    if is_relevant(it, entity) then
+      iterator.iterate_entity(it, entity, true)
     end
   end
 end
@@ -99,8 +75,9 @@ local function on_entity_destroyed(e)
   for _, it in pairs(global.iterator) do
     local entity_data = it.entities[unit_number]
     if entity_data then
-      iterator.delete_entity(it, entity_data)
-      update_neighbours(it, entity, true)
+      -- Iterate the entity to force an update of the neighbours on the next tick
+      iterator.iterate_entity(it, entity, true)
+      iterator.delete_entity(it, it.entities[unit_number])
     end
   end
 end
@@ -122,13 +99,8 @@ local function on_entity_updated(e)
   end
 
   for _, it in pairs(global.iterator) do
-    local entity_data = it.entities[unit_number]
-    if entity_data then
-      iterator.clear_entity(it, entity_data)
-    end
     if is_relevant(it, entity) then
-      iterator.draw_entity(it, entity_data)
-      update_neighbours(it, entity, false)
+      iterator.iterate_entity(it, entity, true)
     end
   end
 end

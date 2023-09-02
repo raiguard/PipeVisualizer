@@ -1,3 +1,7 @@
+if script.active_mods["gvv"] then
+  require("__gvv__.gvv")()
+end
+
 local handler = require("__core__/lualib/event_handler")
 
 handler.add_libraries({
