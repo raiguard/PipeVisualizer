@@ -18,6 +18,7 @@ local flib_queue = require("__flib__/queue")
 --- @field shape RenderObjectID?
 --- @field pending_connections ConnectionData[]
 --- @field unit_number UnitNumber
+
 --- @class Iterator
 --- @field entities table<UnitNumber, EntityData>
 --- @field in_overlay boolean
@@ -45,11 +46,8 @@ local function request(starting_entity, player_index, in_overlay)
     }
   end
 
-  local entity_data = iterator.entities[
-    starting_entity.unit_number --[[@as uint]]
-  ]
-  local to_iterate = entity_data and entity_data.connections or {}
   local fluidbox = starting_entity.fluidbox
+  local should_iterate = false
   for i = 1, #fluidbox do
     --- @cast i uint
     local id = fluidbox.get_fluid_system_id(i)
@@ -58,19 +56,20 @@ local function request(starting_entity, player_index, in_overlay)
     end
 
     local system = iterator.systems[id]
-    if system and not to_iterate[id] then
-      to_iterate[id] = {}
+    if system and not in_overlay then
       goto continue
     end
 
-    -- TODO: Handle when there's no fluid in the system
-    local color = { r = 0.3, g = 0.3, b = 0.3 }
-    local contents = fluidbox.get_fluid_system_contents(i)
-    if contents and next(contents) then
-      color = global.fluid_colors[next(contents)]
-    end
+    if not system then
+      -- TODO: Handle when there's no fluid in the system
+      local color = { r = 0.3, g = 0.3, b = 0.3 }
+      local contents = fluidbox.get_fluid_system_contents(i)
+      if contents and next(contents) then
+        color = global.fluid_colors[next(contents)]
+      end
 
-    iterator.systems[id] = color
+      iterator.systems[id] = color
+    end
 
     should_iterate = true
 
@@ -125,9 +124,9 @@ local default_color = { r = 0.32, g = 0.32, b = 0.32, a = 0.4 }
 --- @param iterator Iterator
 --- @param entity_data EntityData
 local function draw_entity(iterator, entity_data)
-  local complex_type = not pipe_types[entity_data.entity.type]
+  local is_complex_type = not pipe_types[entity_data.entity.type]
   local fluidbox = entity_data.fluidbox
-  if complex_type then
+  if is_complex_type then
     local box = flib_bounding_box.resize(entity_data.entity.selection_box, -0.1)
     entity_data.shape = rendering.draw_sprite({
       sprite = "pv-entity-box",
@@ -190,7 +189,7 @@ local function draw_entity(iterator, entity_data)
         y = connection.position.y + (connection.target_position.y - connection.position.y) / 2,
       }
 
-      if complex_type then
+      if is_complex_type then
         if connection.flow_direction == "input" then
           direction = (direction + 4) % 8 -- Opposite
         end
