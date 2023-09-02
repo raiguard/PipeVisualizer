@@ -395,6 +395,9 @@ local function request_or_clear(starting_entity, player_index)
     request(starting_entity, player_index, false)
     return
   end
+  if iterator.in_overlay then
+    return
+  end
   local fluidbox = starting_entity.fluidbox
   for fluidbox_index = 1, #fluidbox do
     --- @cast fluidbox_index uint
@@ -418,7 +421,6 @@ local function on_tick()
     return
   end
   local entities_per_tick = math.ceil(30 / table_size(global.iterator))
-  -- local entities_per_tick = 1
   for _, iterator in pairs(global.iterator) do
     iterate(iterator, entities_per_tick)
   end
@@ -426,6 +428,10 @@ end
 
 --- @param e EventData.CustomInputEvent
 local function on_toggle_hover(e)
+  local iterator = global.iterator[e.player_index]
+  if iterator and iterator.in_overlay then
+    return
+  end
   local player = game.get_player(e.player_index)
   if not player then
     return
@@ -443,47 +449,6 @@ local iterator = {}
 function iterator.on_init()
   --- @type table<PlayerIndex, Iterator>
   global.iterator = {}
-
-  -- local vertices = {
-  --   -- North
-  --   { -line_radius, line_radius },
-  --   { -line_radius, -0.5 },
-  --   { line_radius, -0.5 },
-  --   { line_radius, line_radius },
-  --   { -line_radius, line_radius },
-  --   -- East
-  --   { -line_radius, -line_radius },
-  --   { 0.5, -line_radius },
-  --   { 0.5, line_radius },
-  --   { -line_radius, line_radius },
-  --   { -line_radius, -line_radius },
-  --   -- South
-  --   { line_radius, -line_radius },
-  --   { line_radius, 0.5 },
-  --   { -line_radius, 0.5 },
-  --   { -line_radius, -line_radius },
-  --   { line_radius, -line_radius },
-  --   -- West
-  --   { -line_radius, line_radius },
-  --   { -0.5, line_radius },
-  --   { -0.5, -line_radius },
-  --   { line_radius, -line_radius },
-  --   { -line_radius, line_radius },
-  -- }
-
-  -- local real_vertices = {}
-  -- for i, vertex in pairs(vertices) do
-  --   real_vertices[i] = { target = vertex }
-  -- end
-
-  -- -- 2 pixels; 2/32 of a tile
-  -- rendering.draw_polygon({
-  --   color = { b = 1, g = 1 },
-  --   filled = true,
-  --   target = { 0.5, 0.5 },
-  --   vertices = real_vertices,
-  --   surface = 1,
-  -- })
 end
 
 iterator.events = {
