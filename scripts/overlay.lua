@@ -123,7 +123,7 @@ local function visualize_area(self, area)
     },
   })
   for _, entity in pairs(entities) do
-    iterator.request(entity, self.player.index, true)
+    iterator.request(entity, self.player.index, true, false)
   end
 end
 

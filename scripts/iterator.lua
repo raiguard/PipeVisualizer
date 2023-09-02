@@ -23,13 +23,18 @@ local flib_queue = require("__flib__/queue")
 --- @field entities table<UnitNumber, EntityData>
 --- @field in_overlay boolean
 --- @field player_index PlayerIndex
---- @field queue Queue<LuaEntity>
+--- @field queue Queue<ToIterate>
 --- @field systems table<FluidSystemID, Color>
+
+--- @class ToIterate
+--- @field entity LuaEntity
+--- @field update_neighbours boolean
 
 --- @param starting_entity LuaEntity
 --- @param player_index PlayerIndex
 --- @param in_overlay boolean
-local function request(starting_entity, player_index, in_overlay)
+--- @param update_neighbours boolean
+local function request(starting_entity, player_index, in_overlay, update_neighbours)
   if not global.iterator then
     return
   end
@@ -56,7 +61,7 @@ local function request(starting_entity, player_index, in_overlay)
     end
 
     local system = iterator.systems[id]
-    if system and not in_overlay then
+    if system and not in_overlay and not update_neighbours then
       goto continue
     end
 
@@ -77,7 +82,7 @@ local function request(starting_entity, player_index, in_overlay)
   end
 
   if should_iterate then
-    flib_queue.push_back(iterator.queue, starting_entity)
+    flib_queue.push_back(iterator.queue, { entity = starting_entity, update_neighbours = update_neighbours })
     global.iterator[player_index] = iterator
   end
 end
@@ -123,7 +128,8 @@ local default_color = { r = 0.32, g = 0.32, b = 0.32, a = 0.4 }
 
 --- @param iterator Iterator
 --- @param entity_data EntityData
-local function draw_entity(iterator, entity_data)
+--- @param ignore_unit_number UnitNumber?
+local function draw_entity(iterator, entity_data, ignore_unit_number)
   local is_complex_type = not pipe_types[entity_data.entity.type]
   local fluidbox = entity_data.fluidbox
   if is_complex_type then
@@ -180,7 +186,7 @@ local function draw_entity(iterator, entity_data)
       local connection = pipe_connections[connection_index]
       local direction = get_cardinal_direction(connection.position, connection.target_position)
 
-      if not connection.target then
+      if not connection.target or connection.target.owner.unit_number == ignore_unit_number then
         goto inner_continue
       end
 
@@ -288,12 +294,30 @@ local function clear_entity(iterator, entity_data, fluid_system_id)
     draw_entity(iterator, entity_data)
     return
   end
-  iterator.entities[entity_data.unit_number] = nil
+end
+
+--- @param iterator Iterator
+--- @param entity_data EntityData
+--- @param fluid_system_id FluidSystemID?
+local function delete_entity(iterator, entity_data, fluid_system_id)
+  clear_entity(iterator, entity_data, fluid_system_id)
+  if not next(entity_data.connections) then
+    iterator.entities[entity_data.unit_number] = nil
+  end
+end
+
+--- @param iterator Iterator
+--- @param entity_data EntityData
+--- @param ignore_unit_number UnitNumber?
+local function update_entity(iterator, entity_data, ignore_unit_number)
+  clear_entity(iterator, entity_data)
+  draw_entity(iterator, entity_data, ignore_unit_number)
 end
 
 --- @param iterator Iterator
 --- @param entity LuaEntity
-local function iterate_entity(iterator, entity)
+--- @param update_neighbours boolean
+local function iterate_entity(iterator, entity, update_neighbours)
   local entity_data = iterator.entities[
     entity.unit_number --[[@as uint]]
   ]
@@ -301,7 +325,7 @@ local function iterate_entity(iterator, entity)
     if #entity_data.fluidbox == 1 then
       return
     end
-    clear_entity(iterator, entity_data)
+    delete_entity(iterator, entity_data)
   end
   --- @type EntityData
   entity_data = {
@@ -315,7 +339,7 @@ local function iterate_entity(iterator, entity)
 
   draw_entity(iterator, entity_data)
 
-  if iterator.in_overlay then
+  if iterator.in_overlay and not update_neighbours then
     return
   end
 
@@ -327,9 +351,19 @@ local function iterate_entity(iterator, entity)
     if not system then
       goto continue
     end
-    -- system.entities[entity.unit_number] = entity_data
     for _, neighbour_fluidbox in pairs(fluidbox.get_connections(fluidbox_index)) do
-      flib_queue.push_back(iterator.queue, neighbour_fluidbox.owner)
+      local neighbour = neighbour_fluidbox.owner
+      local neighbour_data = iterator.entities[neighbour.unit_number]
+      if neighbour_data then
+        if update_neighbours then
+          delete_entity(iterator, neighbour_data)
+        else
+          goto inner_continue
+        end
+      end
+      flib_queue.push_back(iterator.queue, { entity = neighbour, update_neighbours = false })
+
+      ::inner_continue::
     end
 
     ::continue::
@@ -340,11 +374,11 @@ end
 --- @param entities_per_tick integer
 local function iterate(iterator, entities_per_tick)
   for _ = 1, entities_per_tick do
-    local entity = flib_queue.pop_front(iterator.queue)
-    if not entity then
+    local data = flib_queue.pop_front(iterator.queue)
+    if not data then
       break
     end
-    iterate_entity(iterator, entity)
+    iterate_entity(iterator, data.entity, data.update_neighbours)
   end
 end
 
@@ -354,7 +388,7 @@ local function clear(iterator, system_id)
   iterator.systems[system_id] = nil
   for _, entity_data in pairs(iterator.entities) do
     if entity_data.connections[system_id] then
-      clear_entity(iterator, entity_data, system_id)
+      delete_entity(iterator, entity_data, system_id)
     end
   end
   if not next(iterator.systems) then
@@ -392,7 +426,7 @@ local function request_or_clear(starting_entity, player_index)
   end
   local iterator = global.iterator[player_index]
   if not iterator then
-    request(starting_entity, player_index, false)
+    request(starting_entity, player_index, false, false)
     return
   end
   if iterator.in_overlay then
@@ -403,7 +437,7 @@ local function request_or_clear(starting_entity, player_index)
     --- @cast fluidbox_index uint
     local id = fluidbox.get_fluid_system_id(fluidbox_index)
     if id and not iterator.systems[id] then
-      request(starting_entity, player_index, false)
+      request(starting_entity, player_index, false, false)
       return
     end
   end
@@ -457,6 +491,10 @@ iterator.events = {
 }
 
 iterator.clear_all = clear_all
+iterator.clear_entity = clear_entity
+iterator.delete_entity = delete_entity
+iterator.draw_entity = draw_entity
 iterator.request = request
+iterator.update_entity = update_entity
 
 return iterator

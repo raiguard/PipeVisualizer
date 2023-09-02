@@ -4,6 +4,7 @@ handler.add_libraries({
   require("__PipeVisualizer__/scripts/migrations"),
 
   require("__PipeVisualizer__/scripts/colors"),
+  require("__PipeVisualizer__/scripts/entity-detection"),
   require("__PipeVisualizer__/scripts/iterator"),
   require("__PipeVisualizer__/scripts/overlay"),
 })
