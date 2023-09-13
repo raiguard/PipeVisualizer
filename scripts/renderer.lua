@@ -69,19 +69,19 @@ function renderer.draw(it, entity_data)
   local shape_color
   local highest_id = 0
   local encoded_connections = 0
-  for id, connections in pairs(entity_data.connections) do
-    local color = it.systems[id]
+  for fluid_system_id, connections in pairs(entity_data.connections) do
+    local color = it.systems[fluid_system_id]
     if not color then
       goto continue
     end
-    if id > highest_id then
+    if fluid_system_id > highest_id then
       shape_color = color
-      highest_id = id
+      highest_id = fluid_system_id
     end
-    local objects = entity_data.connection_objects[id]
+    local objects = entity_data.connection_objects[fluid_system_id]
     if not objects then
       objects = {}
-      entity_data.connection_objects[id] = objects
+      entity_data.connection_objects[fluid_system_id] = objects
     end
     for _, connection in pairs(connections) do
       if not connection.target then
@@ -112,11 +112,18 @@ function renderer.draw(it, entity_data)
 
       -- TODO: Investigate using a beam entity to avoid making N render objects
       if connection.connection_type == "underground" then
-        if it.entities[connection.target_owner.unit_number] then
+        local target_data = it.entities[
+          connection.target_owner.unit_number --[[@as uint]]
+        ]
+        if not target_data then
           goto inner_continue
         end
-        local target_connection_data =
-          connection.target.get_pipe_connections(connection.target_fluidbox_index)[connection.target_pipe_connection_index]
+        local target_fluid_system_connections = target_data.connections[fluid_system_id]
+        if not target_fluid_system_connections then
+          goto inner_continue
+        end
+        local target_connection_data = target_fluid_system_connections[connection.target_pipe_connection_index]
+
         local target_position = target_connection_data.position
         local distance = flib_position.distance(connection.position, target_connection_data.position)
         if distance > 1 then
