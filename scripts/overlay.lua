@@ -8,7 +8,6 @@ local iterator = require("__PipeVisualizer__/scripts/iterator")
 -- Add five for a comfortable margin
 local max_overlay_size = 220 + 5
 
---- @alias RenderObjectID uint64
 --- @alias UnitNumber uint
 
 --- @class Overlay
@@ -123,7 +122,7 @@ local function visualize_area(self, area)
     },
   })
   for _, entity in pairs(entities) do
-    iterator.request(entity, self.player.index, true, false)
+    iterator.request(entity, self.player.index, true)
   end
 end
 

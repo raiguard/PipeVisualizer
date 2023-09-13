@@ -1,6 +1,8 @@
 local flib_bounding_box = require("__flib__/bounding-box")
 
+local entity_data = require("__PipeVisualizer__/scripts/entity-data")
 local iterator = require("__PipeVisualizer__/scripts/iterator")
+local util = require("__PipeVisualizer__/scripts/util")
 
 --- @alias BuiltEvent EventData.on_built_entity|EventData.on_robot_built_entity|EventData.on_entity_cloned|EventData.script_raised_built|EventData.script_raised_revive
 --- @alias DestroyedEvent EventData.on_player_mined_entity|EventData.on_robot_mined_entity|EventData.on_entity_died|EventData.script_raised_destroy
@@ -16,21 +18,28 @@ local function is_relevant(iterator, entity)
     end
     local box =
       flib_bounding_box.from_dimensions(overlay.last_position, overlay.dimensions.width, overlay.dimensions.height)
-    if not flib_bounding_box.contains_position(box, entity.position) then
-      return false
-    end
-    return true
+    return flib_bounding_box.contains_position(box, entity.position)
   end
 
   local fluidbox = entity.fluidbox
-  for i = 1, #fluidbox do
-    --- @cast i uint
-    local id = fluidbox.get_fluid_system_id(i)
-    if id and iterator.systems[id] then
+  for _, fluid_system_id in util.iterate_fluid_systems(fluidbox) do
+    if iterator.systems[fluid_system_id] then
       return true
     end
   end
   return false
+end
+
+--- @param it Iterator
+--- @param data EntityData
+local function update_neighbours(it, data)
+  for _, connections in pairs(data.connections) do
+    for _, connection in pairs(connections) do
+      if connection.target_owner then
+        iterator.request2(it, connection.target_owner)
+      end
+    end
+  end
 end
 
 --- @param e BuiltEvent
@@ -51,7 +60,7 @@ local function on_entity_built(e)
 
   for _, it in pairs(global.iterator) do
     if is_relevant(it, entity) then
-      iterator.iterate_entity(it, entity, true)
+      iterator.request2(it, entity, true)
     end
   end
 end
@@ -73,12 +82,15 @@ local function on_entity_destroyed(e)
   end
 
   for _, it in pairs(global.iterator) do
-    local entity_data = it.entities[unit_number]
-    if entity_data then
-      -- Iterate the entity to force an update of the neighbours on the next tick
-      iterator.iterate_entity(it, entity, true)
-      iterator.delete_entity(it, it.entities[unit_number])
+    local data = it.entities[unit_number]
+    if not data then
+      goto continue
     end
+
+    update_neighbours(it, data)
+    entity_data.remove(it, data)
+
+    ::continue::
   end
 end
 
@@ -99,9 +111,15 @@ local function on_entity_updated(e)
   end
 
   for _, it in pairs(global.iterator) do
-    if is_relevant(it, entity) then
-      iterator.iterate_entity(it, entity, true)
+    local data = it.entities[unit_number]
+    if not data then
+      if is_relevant(it, entity) then
+        iterator.request2(it, entity)
+      end
+      return
     end
+    update_neighbours(it, data)
+    iterator.request2(it, entity, true)
   end
 end
 
