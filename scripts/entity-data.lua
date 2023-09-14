@@ -43,6 +43,12 @@ function entity_data.create(iterator, entity)
 
   local data = iterator.entities[unit_number]
   if data then
+    entity.surface.create_entity({
+      name = "flying-text",
+      text = "Redraw",
+      color = { r = 1, g = 0.3, b = 0.3 },
+      position = entity.position,
+    })
     entity_data.remove(iterator, data)
   end
 
