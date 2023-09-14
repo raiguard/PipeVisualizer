@@ -161,13 +161,13 @@ local function request_or_clear(entity, player_index)
   end
   local iterator = global.iterator[player_index]
   if not iterator then
-    request(entity, player_index, false, false)
+    request(entity, player_index, false)
     return
   end
   if iterator.in_overlay then
     return
   end
-  if request(entity, player_index, false, false) then
+  if request(entity, player_index, false) then
     return
   end
   -- TODO: Rewrite this
