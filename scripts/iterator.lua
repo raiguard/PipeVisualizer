@@ -11,9 +11,42 @@ local util = require("__PipeVisualizer__/scripts/util")
 --- @class Iterator
 --- @field entities table<UnitNumber, EntityData>
 --- @field in_overlay boolean
+--- @field in_queue table<UnitNumber, boolean>
 --- @field player_index PlayerIndex
---- @field queue Queue<{entity: LuaEntity, update_neighbours: boolean}>
+--- @field queue Queue<ToIterate>
 --- @field systems table<FluidSystemID, Color>
+
+--- @class ToIterate
+--- @field entity LuaEntity
+--- @field update_neighbours boolean
+
+--- @param iterator Iterator
+--- @param entity LuaEntity
+--- @param update_neighbours boolean?
+local function push(iterator, entity, update_neighbours)
+  update_neighbours = update_neighbours or false
+  flib_queue.push_back(iterator.queue, { entity = entity, update_neighbours = update_neighbours })
+  local unit_number = entity.unit_number --[[@as uint]]
+  iterator.in_queue[unit_number] = true
+end
+
+--- @param iterator Iterator
+--- @return LuaEntity? entity
+--- @return boolean? update_neighbours
+local function pop(iterator)
+  local to_iterate = flib_queue.pop_front(iterator.queue)
+  if not to_iterate then
+    return
+  end
+  local entity, update_neighbours = to_iterate.entity, to_iterate.update_neighbours
+  if not entity.valid then
+    return
+  end
+  local unit_number = entity.unit_number --[[@as uint]]
+  iterator.in_queue[unit_number] = nil
+
+  return entity, update_neighbours
+end
 
 --- @param entity LuaEntity
 --- @param player_index PlayerIndex
@@ -30,6 +63,7 @@ local function request(entity, player_index, in_overlay)
     iterator = {
       entities = {},
       in_overlay = in_overlay,
+      in_queue = {},
       player_index = player_index,
       queue = flib_queue.new(),
       systems = {},
@@ -61,7 +95,7 @@ local function request(entity, player_index, in_overlay)
   end
 
   if should_iterate then
-    flib_queue.push_back(iterator.queue, { entity = entity })
+    push(iterator, entity)
     global.iterator[player_index] = iterator
   end
 
@@ -69,25 +103,14 @@ local function request(entity, player_index, in_overlay)
 end
 
 --- @param iterator Iterator
---- @param entity LuaEntity
---- @param update_neighbours boolean?
-local function request2(iterator, entity, update_neighbours)
-  update_neighbours = update_neighbours or false
-  flib_queue.push_back(iterator.queue, { entity = entity, update_neighbours = update_neighbours })
-end
-
---- @param iterator Iterator
 --- @param entities_per_tick integer
 local function iterate(iterator, entities_per_tick)
   for _ = 1, entities_per_tick do
-    local to_iterate = flib_queue.pop_front(iterator.queue)
-    if not to_iterate then
-      break
-    end
-    local entity, update_neighbours = to_iterate.entity, to_iterate.update_neighbours
-    if not entity.valid then
+    local entity, update_neighbours = pop(iterator)
+    if not entity then
       goto continue
     end
+    --- @cast update_neighbours boolean
 
     -- If the entity data already existed, this entity was requested to be redrawn
     local data = entity_data.create(iterator, entity)
@@ -102,18 +125,22 @@ local function iterate(iterator, entities_per_tick)
     end
 
     -- Propagate to undrawn neighbours
+    -- TODO: This is an abhorrent amount of nesting
     for fluid_system_id, connections in pairs(data.connections) do
       if iterator.systems[fluid_system_id] then
         for _, connection in pairs(connections) do
           local owner = connection.target_owner
           if owner then
-            local data = entity_data.get(iterator, owner)
-            if
-              update_neighbours
-              or not data
-              or (data.connections[fluid_system_id] and not data.connection_objects[fluid_system_id])
-            then
-              flib_queue.push_back(iterator.queue, { entity = owner })
+            local unit_number = owner.unit_number --[[@as UnitNumber]]
+            if not iterator.in_queue[unit_number] then
+              local data = entity_data.get(iterator, owner)
+              if
+                update_neighbours
+                or not data
+                or (data.connections[fluid_system_id] and not data.connection_objects[fluid_system_id])
+              then
+                push(iterator, owner)
+              end
             end
           end
         end
@@ -161,13 +188,13 @@ local function request_or_clear(entity, player_index)
   end
   local iterator = global.iterator[player_index]
   if not iterator then
-    request(entity, player_index, false, false)
+    request(entity, player_index, false)
     return
   end
   if iterator.in_overlay then
     return
   end
-  if request(entity, player_index, false, false) then
+  if request(entity, player_index, false) then
     return
   end
   -- TODO: Rewrite this
@@ -224,6 +251,6 @@ iterator.events = {
 
 iterator.clear_all = clear_all
 iterator.request = request
-iterator.request2 = request2
+iterator.push = push
 
 return iterator
