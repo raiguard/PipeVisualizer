@@ -36,7 +36,7 @@ local function update_neighbours(it, data)
   for _, connections in pairs(data.connections) do
     for _, connection in pairs(connections) do
       if connection.target_owner then
-        iterator.request2(it, connection.target_owner)
+        iterator.push(it, connection.target_owner)
       end
     end
   end
@@ -60,7 +60,7 @@ local function on_entity_built(e)
 
   for _, it in pairs(global.iterator) do
     if is_relevant(it, entity) then
-      iterator.request2(it, entity, true)
+      iterator.push(it, entity, true)
     end
   end
 end
@@ -114,12 +114,12 @@ local function on_entity_updated(e)
     local data = it.entities[unit_number]
     if not data then
       if is_relevant(it, entity) then
-        iterator.request2(it, entity)
+        iterator.push(it, entity)
       end
       return
     end
     update_neighbours(it, data)
-    iterator.request2(it, entity, true)
+    iterator.push(it, entity, true)
   end
 end
 

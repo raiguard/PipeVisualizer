@@ -11,9 +11,32 @@ local util = require("__PipeVisualizer__/scripts/util")
 --- @class Iterator
 --- @field entities table<UnitNumber, EntityData>
 --- @field in_overlay boolean
+--- @field in_queue table<UnitNumber, boolean>
 --- @field player_index PlayerIndex
 --- @field queue Queue<{entity: LuaEntity, update_neighbours: boolean}>
 --- @field systems table<FluidSystemID, Color>
+
+--- @param iterator Iterator
+--- @param entity LuaEntity
+--- @param update_neighbours boolean?
+local function push(iterator, entity, update_neighbours)
+  local unit_number = entity.unit_number --[[@as UnitNumber]]
+  iterator.in_queue[unit_number] = true
+  flib_queue.push_back(iterator.queue, { entity = entity, update_neighbours = update_neighbours })
+end
+
+--- @param iterator Iterator
+--- @return LuaEntity? entity
+--- @return boolean? update_neighbours
+local function pop(iterator)
+  local data = flib_queue.pop_front(iterator.queue)
+  if not data or not data.entity.valid then
+    return
+  end
+  local unit_number = data.entity.unit_number --[[@as UnitNumber]]
+  iterator.in_queue[unit_number] = nil
+  return data.entity, data.update_neighbours
+end
 
 --- @param entity LuaEntity
 --- @param player_index PlayerIndex
@@ -30,6 +53,7 @@ local function request(entity, player_index, in_overlay)
     iterator = {
       entities = {},
       in_overlay = in_overlay,
+      in_queue = {},
       player_index = player_index,
       queue = flib_queue.new(),
       systems = {},
@@ -61,7 +85,7 @@ local function request(entity, player_index, in_overlay)
   end
 
   if should_iterate then
-    flib_queue.push_back(iterator.queue, { entity = entity })
+    push(iterator, entity)
     global.iterator[player_index] = iterator
   end
 
@@ -69,24 +93,12 @@ local function request(entity, player_index, in_overlay)
 end
 
 --- @param iterator Iterator
---- @param entity LuaEntity
---- @param update_neighbours boolean?
-local function request2(iterator, entity, update_neighbours)
-  update_neighbours = update_neighbours or false
-  flib_queue.push_back(iterator.queue, { entity = entity, update_neighbours = update_neighbours })
-end
-
---- @param iterator Iterator
 --- @param entities_per_tick integer
 local function iterate(iterator, entities_per_tick)
   for _ = 1, entities_per_tick do
-    local to_iterate = flib_queue.pop_front(iterator.queue)
-    if not to_iterate then
+    local entity, update_neighbours = pop(iterator)
+    if not entity then
       break
-    end
-    local entity, update_neighbours = to_iterate.entity, to_iterate.update_neighbours
-    if not entity.valid then
-      goto continue
     end
 
     -- If the entity data already existed, this entity was requested to be redrawn
@@ -97,7 +109,7 @@ local function iterate(iterator, entities_per_tick)
 
     renderer.draw(iterator, data)
 
-    if iterator.in_overlay and not update_neighbours then
+    if iterator.in_overlay and not update_neighbours or iterator.queue[entity.unit_number] then
       goto continue
     end
 
@@ -111,9 +123,9 @@ local function iterate(iterator, entities_per_tick)
             if
               update_neighbours
               or not data
-              or (data.connections[fluid_system_id] and not data.connection_objects[fluid_system_id])
+              or data.connections[fluid_system_id] and not data.connection_objects[fluid_system_id]
             then
-              flib_queue.push_back(iterator.queue, { entity = owner })
+              push(iterator, owner)
             end
           end
         end
@@ -223,7 +235,7 @@ iterator.events = {
 }
 
 iterator.clear_all = clear_all
+iterator.push = push
 iterator.request = request
-iterator.request2 = request2
 
 return iterator
