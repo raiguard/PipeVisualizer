@@ -60,6 +60,10 @@ local function request(entity, player_index, in_overlay)
     }
   end
 
+  if entity_data.get(iterator, entity) then
+    return false
+  end
+
   local fluidbox = entity.fluidbox
   local should_iterate = false
   for fluidbox_index, fluid_system_id in util.iterate_fluid_systems(fluidbox) do
