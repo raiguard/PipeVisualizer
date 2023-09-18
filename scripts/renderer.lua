@@ -1,13 +1,48 @@
 local flib_bounding_box = require("__flib__/bounding-box")
 local flib_position = require("__flib__/position")
+local flib_queue = require("__flib__/queue")
 
 --- @alias RenderObjectID uint64
 
+local function init()
+  rendering.clear(script.mod_name)
+  --- @type Queue<RenderObjectID>
+  global.render_objects = flib_queue.new()
+end
+
 --- @param id RenderObjectID
-local function destroy_if_valid(id)
-  if rendering.is_valid(id) then
-    rendering.destroy(id)
+local function clear_sprite(id)
+  if not rendering.is_valid(id) then
+    return
   end
+  rendering.set_visible(id, false)
+  flib_queue.push_back(global.render_objects, id)
+end
+
+--- @param args LuaRendering.draw_sprite_param
+--- @return RenderObjectID
+local function draw_sprite(args)
+  local id = flib_queue.pop_front(global.render_objects)
+  if not id then
+    return rendering.draw_sprite(args)
+  end
+
+  if rendering.get_surface(id) ~= args.surface then
+    flib_queue.push_back(global.render_objects, id)
+    return rendering.draw_sprite(args)
+  end
+
+  rendering.set_sprite(id, args.sprite)
+  rendering.set_color(id, args.tint)
+  rendering.set_x_scale(id, args.x_scale or 1)
+  rendering.set_y_scale(id, args.y_scale or 1)
+  rendering.set_render_layer(id, args.render_layer)
+  rendering.set_orientation(id, args.orientation or 0)
+  rendering.set_target(id, args.target)
+  rendering.set_players(id, args.players)
+  rendering.set_visible(id, true)
+
+  return id
 end
 
 local layers = {
@@ -42,7 +77,7 @@ function renderer.draw(it, entity_data)
   -- TODO: Build and cache boxes for all entities ahead of time
   if is_complex_type then
     local box = flib_bounding_box.resize(entity_data.entity.selection_box, -0.1)
-    entity_data.shape = rendering.draw_sprite({
+    entity_data.shape = draw_sprite({
       sprite = "pv-entity-box",
       tint = default_color,
       x_scale = flib_bounding_box.width(box),
@@ -54,7 +89,7 @@ function renderer.draw(it, entity_data)
     })
   else
     local box = flib_bounding_box.ceil(entity_data.entity.selection_box)
-    entity_data.shape = rendering.draw_sprite({
+    entity_data.shape = draw_sprite({
       sprite = "pv-pipe-connections-0",
       tint = default_color,
       x_scale = flib_bounding_box.width(box),
@@ -97,7 +132,7 @@ function renderer.draw(it, entity_data)
         if connection.flow_direction ~= "input-output" and not pipe_types[connection.target_owner.type] then
           sprite = "pv-fluid-arrow"
         end
-        objects[#objects + 1] = rendering.draw_sprite({
+        objects[#objects + 1] = draw_sprite({
           sprite = sprite,
           tint = color,
           render_layer = layers.arrow,
@@ -129,7 +164,7 @@ function renderer.draw(it, entity_data)
         if distance > 1 then
           for i = 1, distance - 1 do
             local target = flib_position.lerp(connection.position, target_position, i / distance)
-            objects[#objects + 1] = rendering.draw_sprite({
+            objects[#objects + 1] = draw_sprite({
               sprite = "pv-underground-connection",
               tint = color,
               render_layer = layers.underground,
@@ -158,11 +193,11 @@ end
 
 --- @param entity_data EntityData
 function renderer.clear(entity_data)
-  destroy_if_valid(entity_data.shape)
+  clear_sprite(entity_data.shape)
   entity_data.shape = nil
   for _, objects in pairs(entity_data.connection_objects) do
     for _, id in pairs(objects) do
-      destroy_if_valid(id)
+      clear_sprite(id)
     end
   end
   entity_data.connection_objects = {}
@@ -176,13 +211,13 @@ function renderer.clear_system(iterator, entity_data, fluid_system_id)
   local objects = entity_data.connection_objects[fluid_system_id]
   if objects then
     for _, id in pairs(objects) do
-      destroy_if_valid(id)
+      clear_sprite(id)
     end
     entity_data.connection_objects[fluid_system_id] = nil
   end
   local should_remove = not next(entity_data.connection_objects)
   if should_remove then
-    destroy_if_valid(entity_data.shape)
+    clear_sprite(entity_data.shape)
     entity_data.shape = nil
   else
     renderer.update_shape_color(iterator, entity_data)
@@ -201,5 +236,8 @@ function renderer.update_shape_color(iterator, entity_data)
   end
   rendering.set_color(entity_data.shape, highest_id > 0 and iterator.systems[highest_id] or default_color)
 end
+
+renderer.on_init = init
+renderer.on_configuration_changed = init
 
 return renderer
