@@ -129,7 +129,10 @@ local function iterate(iterator, entities_per_tick)
               or not data
               or data.connections[fluid_system_id] and not data.connection_objects[fluid_system_id]
             then
-              push(iterator, owner)
+              local unit_number = owner.unit_number --[[@as UnitNumber]]
+              if not iterator.in_queue[unit_number] then
+                push(iterator, owner)
+              end
             end
           end
         end
