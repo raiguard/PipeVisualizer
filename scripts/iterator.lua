@@ -14,12 +14,16 @@ local util = require("__PipeVisualizer__/scripts/util")
 --- @field in_queue table<UnitNumber, boolean>
 --- @field player_index PlayerIndex
 --- @field queue Queue<{entity: LuaEntity, update_neighbours: boolean}>
+--- @field scheduled table<FluidSystemID, {entity: LuaEntity?, tick: uint}>
 --- @field systems table<FluidSystemID, Color>
 
 --- @param iterator Iterator
 --- @param entity LuaEntity
 --- @param update_neighbours boolean?
 local function push(iterator, entity, update_neighbours)
+  if not entity.valid then
+    return
+  end
   local unit_number = entity.unit_number --[[@as UnitNumber]]
   iterator.in_queue[unit_number] = true
   flib_queue.push_back(iterator.queue, { entity = entity, update_neighbours = update_neighbours })
@@ -56,6 +60,7 @@ local function request(entity, player_index, in_overlay)
       in_queue = {},
       player_index = player_index,
       queue = flib_queue.new(),
+      scheduled = {},
       systems = {},
     }
   end
@@ -189,7 +194,6 @@ local function request_or_clear(entity, player_index)
   if request(entity, player_index, false) then
     return
   end
-  -- TODO: Rewrite this
   local fluidbox = entity.fluidbox
   for fluidbox_index = 1, #fluidbox do
     --- @cast fluidbox_index uint
@@ -200,12 +204,32 @@ local function request_or_clear(entity, player_index)
   end
 end
 
+--- @param iterator Iterator
+local function check_scheduled(iterator)
+  for fluid_system_id, data in pairs(iterator.scheduled) do
+    if data.tick > game.tick then
+      goto continue
+    end
+
+    clear_system(iterator, fluid_system_id)
+
+    if data.entity and data.entity.valid then
+      request(data.entity, iterator.player_index, iterator.in_overlay)
+    end
+
+    iterator.scheduled[fluid_system_id] = nil
+
+    ::continue::
+  end
+end
+
 local function on_tick()
   if not global.iterator then
     return
   end
   local entities_per_tick = math.ceil(30 / table_size(global.iterator))
   for _, iterator in pairs(global.iterator) do
+    check_scheduled(iterator)
     iterate(iterator, entities_per_tick)
   end
 end
@@ -242,7 +266,6 @@ iterator.events = {
 }
 
 iterator.clear_all = clear_all
-iterator.push = push
 iterator.request = request
 
 return iterator

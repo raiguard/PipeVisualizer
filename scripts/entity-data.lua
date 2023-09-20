@@ -43,6 +43,7 @@ function entity_data.create(iterator, entity)
 
   local data = iterator.entities[unit_number]
   if data then
+    ---@diagnostic disable-next-line: missing-fields
     entity.surface.create_entity({
       name = "flying-text",
       text = "Redraw",

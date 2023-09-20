@@ -1,7 +1,5 @@
 local flib_bounding_box = require("__flib__/bounding-box")
 
-local entity_data = require("__PipeVisualizer__/scripts/entity-data")
-local iterator = require("__PipeVisualizer__/scripts/iterator")
 local util = require("__PipeVisualizer__/scripts/util")
 
 --- @alias BuiltEvent EventData.on_built_entity|EventData.on_robot_built_entity|EventData.on_entity_cloned|EventData.script_raised_built|EventData.script_raised_revive
@@ -21,25 +19,8 @@ local function is_relevant(iterator, entity)
     return flib_bounding_box.contains_position(box, entity.position)
   end
 
-  local fluidbox = entity.fluidbox
-  for _, fluid_system_id in util.iterate_fluid_systems(fluidbox) do
-    if iterator.systems[fluid_system_id] then
-      return true
-    end
-  end
-  return false
-end
-
---- @param it Iterator
---- @param data EntityData
-local function update_neighbours(it, data)
-  for _, connections in pairs(data.connections) do
-    for _, connection in pairs(connections) do
-      if connection.target_owner then
-        iterator.push(it, connection.target_owner)
-      end
-    end
-  end
+  local unit_number = entity.unit_number --[[@as UnitNumber]]
+  return iterator.entities[unit_number] and true or false
 end
 
 --- @param e BuiltEvent
@@ -53,14 +34,11 @@ local function on_entity_built(e)
     return
   end
 
-  local unit_number = entity.unit_number
-  if not unit_number then
-    return
-  end
-
   for _, it in pairs(global.iterator) do
-    if is_relevant(it, entity) then
-      iterator.push(it, entity, true)
+    for _, fluid_system_id in util.iterate_fluid_systems(entity.fluidbox) do
+      if it.in_overlay or it.systems[fluid_system_id] then
+        it.scheduled[fluid_system_id] = { entity = entity, tick = game.tick + 60 }
+      end
     end
   end
 end
@@ -82,15 +60,12 @@ local function on_entity_destroyed(e)
   end
 
   for _, it in pairs(global.iterator) do
-    local data = it.entities[unit_number]
-    if not data then
-      goto continue
+    for _, fluid_system_id in util.iterate_fluid_systems(entity.fluidbox) do
+      if it.systems[fluid_system_id] then
+        -- TODO: This will just nuke all of these systems instead of update them
+        it.scheduled[fluid_system_id] = { tick = game.tick + 60 }
+      end
     end
-
-    update_neighbours(it, data)
-    entity_data.remove(it, data)
-
-    ::continue::
   end
 end
 
@@ -112,18 +87,30 @@ local function on_entity_updated(e)
 
   for _, it in pairs(global.iterator) do
     local data = it.entities[unit_number]
-    if not data then
-      if is_relevant(it, entity) then
-        iterator.push(it, entity)
+    if data then
+      for fluid_system_id in data.connections do
+        if it.systems[fluid_system_id] then
+          it.scheduled[fluid_system_id] = { tick = game.tick + 60 }
+        end
       end
-      return
     end
-    update_neighbours(it, data)
-    iterator.push(it, entity, true)
+    for _, fluid_system_id in util.iterate_fluid_systems(entity.fluidbox) do
+      if it.systems[fluid_system_id] then
+        it.scheduled[fluid_system_id] = { entity = entity, tick = game.tick + 60 }
+      end
+    end
   end
 end
 
+local function initialize()
+  --- @type uint
+  global.update_systems_on = 0
+end
+
 local entity_detection = {}
+
+entity_detection.on_init = initialize
+entity_detection.on_configuration_changed = initialize
 
 entity_detection.events = {
   [defines.events.on_built_entity] = on_entity_built,
@@ -140,3 +127,9 @@ entity_detection.events = {
 }
 
 return entity_detection
+
+-- Check the systems that its data says it's connected to
+-- Mark those systems for clearing in 60 ticks
+-- If entity was destroyed, stop here
+-- Check the systems it is NOW connected to
+-- Mark those systems for drawing in 60 ticks
