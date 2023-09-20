@@ -16,6 +16,7 @@ local util = require("__PipeVisualizer__/scripts/util")
 --- @field queue Queue<{entity: LuaEntity, update_neighbours: boolean}>
 --- @field scheduled table<FluidSystemID, {entity: LuaEntity?, tick: uint}>
 --- @field systems table<FluidSystemID, Color>
+--- @field next_color_index integer
 
 --- @param iterator Iterator
 --- @param entity LuaEntity
@@ -56,6 +57,7 @@ local function request(entity, player_index, in_overlay)
     --- @type Iterator
     iterator = {
       entities = {},
+      next_color_index = 0,
       in_overlay = in_overlay,
       in_queue = {},
       player_index = player_index,
@@ -78,11 +80,18 @@ local function request(entity, player_index, in_overlay)
     end
 
     if not system then
-      -- TODO: Handle when there's no fluid in the system
       local color = { r = 0.3, g = 0.3, b = 0.3 }
-      local contents = fluidbox.get_fluid_system_contents(fluidbox_index)
-      if contents and next(contents) then
-        color = global.fluid_colors[next(contents)]
+      if global.color_by_system[iterator.player_index] then
+        iterator.next_color_index = iterator.next_color_index + 1
+        local next_color = global.system_colors[iterator.next_color_index]
+        if next_color then
+          color = next_color
+        end
+      else
+        local contents = fluidbox.get_fluid_system_contents(fluidbox_index)
+        if contents and next(contents) then
+          color = global.fluid_colors[next(contents)]
+        end
       end
 
       iterator.systems[fluid_system_id] = color

@@ -163,6 +163,8 @@ local function create_overlay(player)
     player = player,
   }
   global.overlay[player.index] = self
+  iterator.clear_all(player.index)
+  update_overlay(self)
   return self
 end
 
@@ -194,9 +196,7 @@ local function on_toggle_overlay(e)
   if self then
     destroy_overlay(self)
   else
-    local overlay = create_overlay(player)
-    iterator.clear_all(e.player_index)
-    update_overlay(overlay)
+    create_overlay(player)
   end
   player.set_shortcut_toggled("pv-toggle-overlay", global.overlay[e.player_index] ~= nil)
 end
@@ -223,6 +223,16 @@ local function on_player_display_resolution_changed(e)
   update_overlay(self)
 end
 
+--- @param e EventData.CustomInputEvent
+local function on_color_by_system_pressed(e)
+  local self = global.overlay[e.player_index]
+  if not self then
+    return
+  end
+  destroy_overlay(self)
+  create_overlay(game.get_player(e.player_index) --[[@as LuaPlayer]])
+end
+
 local overlay = {}
 
 function overlay.on_init()
@@ -235,6 +245,7 @@ overlay.events = {
   [defines.events.on_player_changed_position] = on_player_changed_position,
   [defines.events.on_player_display_resolution_changed] = on_player_display_resolution_changed,
   ["pv-toggle-overlay"] = on_toggle_overlay,
+  ["pv-color-by-fluid-system"] = on_color_by_system_pressed,
 }
 
 return overlay

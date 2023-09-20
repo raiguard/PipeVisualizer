@@ -72,6 +72,27 @@ local function hsv_to_rgb(h, s, v, a)
   return { r = r, g = g, b = b, a = a }
 end
 
+--- @param e EventData.CustomInputEvent
+local function on_color_by_system_changed(e)
+  global.color_by_system[e.player_index] = not global.color_by_system[e.player_index]
+  local player = game.get_player(e.player_index) --[[@as LuaPlayer]]
+
+  player.create_local_flying_text({
+    text = { global.color_by_system[e.player_index] and "message.pv-color-by-system" or "message.pv-color-by-fluid" },
+    create_at_cursor = true,
+  })
+end
+
+local function generate_system_colors()
+  --- @type Color[]
+  global.system_colors = {}
+  for s = 0.8, 0.3, -0.1 do
+    for h = 0, 360, 30 do
+      global.system_colors[#global.system_colors + 1] = hsv_to_rgb(h / 360, s, 1, 1)
+    end
+  end
+end
+
 local function generate_fluid_colors()
   --- @type table<string, Color>
   local colors = {}
@@ -83,9 +104,19 @@ local function generate_fluid_colors()
   global.fluid_colors = colors
 end
 
+local function initialize()
+  global.color_by_system = {}
+  generate_fluid_colors()
+  generate_system_colors()
+end
+
 local colors = {}
 
-colors.on_init = generate_fluid_colors
-colors.on_configuration_changed = generate_fluid_colors
+colors.on_init = initialize
+colors.on_configuration_changed = initialize
+
+colors.events = {
+  ["pv-color-by-fluid-system"] = on_color_by_system_changed,
+}
 
 return colors

@@ -13,6 +13,12 @@ data:extend({
   },
   {
     type = "custom-input",
+    name = "pv-color-by-fluid-system",
+    key_sequence = "CONTROL + H",
+    action = "lua",
+  },
+  {
+    type = "custom-input",
     name = "pv-toggle-hover",
     key_sequence = "",
     action = "lua",
