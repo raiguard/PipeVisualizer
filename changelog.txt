@@ -2,6 +2,12 @@
 Version: 2.0.0
 Date: ????
   Features:
+    - Added a hotkey to visualize an individual system without needing to remain hovered over it (default: H).
+    - Pipe connections on each entity are visualized individually.
+  Changes:
+    - Changed color mode selection from a GUI toggle to a hotkey (default: Control + H).
+    - Changed overlay hotkey from Control + P to Shift + H.
+    - Visualization is performed over multiple ticks, reducing multiplayer lag spikes.
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.6
 Date: 2023-03-26
