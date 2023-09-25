@@ -19,7 +19,7 @@ Date: 2023-03-09
   Changes:
     - Pumps are now drawn with a diode shape (by nekizalb)
   Bugfixes:
-    - Fixed blue fluid colors being distorted to similar shaded of cyan
+    - Fixed blue fluid colors being distorted to similar shades of cyan
     - Fixed that fluid-burning labs would not be visualized
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.4
