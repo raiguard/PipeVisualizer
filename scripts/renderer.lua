@@ -17,7 +17,6 @@ local function clear_sprite(id)
   end
   rendering.set_visible(id, false)
   flib_queue.push_back(global.render_objects, id)
-  log("Stored " .. id)
 end
 
 --- @param args LuaRendering.draw_sprite_param
@@ -75,7 +74,6 @@ local renderer = {}
 --- @param entity_data EntityData
 function renderer.draw(it, entity_data)
   local is_complex_type = not pipe_types[entity_data.entity.type]
-  -- TODO: Build and cache boxes for all entities ahead of time
   if is_complex_type then
     local box = flib_bounding_box.resize(entity_data.entity.selection_box, -0.1)
     entity_data.shape = draw_sprite({
@@ -146,7 +144,6 @@ function renderer.draw(it, entity_data)
         encoded_connections = bit32.bor(encoded_connections, encoded_directions[direction])
       end
 
-      -- TODO: Investigate using a beam entity to avoid making N render objects
       if connection.connection_type == "underground" then
         local target_data = it.entities[
           connection.target_owner.unit_number --[[@as uint]]

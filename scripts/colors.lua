@@ -76,7 +76,6 @@ end
 local function on_color_by_system_changed(e)
   global.color_by_system[e.player_index] = not global.color_by_system[e.player_index]
   local player = game.get_player(e.player_index) --[[@as LuaPlayer]]
-
   player.create_local_flying_text({
     text = { global.color_by_system[e.player_index] and "message.pv-color-by-system" or "message.pv-color-by-fluid" },
     create_at_cursor = true,
