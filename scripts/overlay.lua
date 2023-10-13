@@ -68,13 +68,11 @@ end
 --- @param player LuaPlayer
 --- @return DisplayResolution
 local function get_dimensions(player)
-  return { width = 32, height = 32 }
-  -- return { width = 96, height = 96 }
-  -- local resolution = player.display_resolution
-  -- local divisor = math.max(resolution.width, resolution.height) / max_overlay_size
-  -- resolution.width = flib_math.ceiled(resolution.width / divisor, 64) + 32
-  -- resolution.height = flib_math.ceiled(resolution.height / divisor, 64) + 32
-  -- return resolution
+  local resolution = player.display_resolution
+  local divisor = math.max(resolution.width, resolution.height) / max_overlay_size
+  resolution.width = flib_math.ceiled(resolution.width / divisor, 64) + 32
+  resolution.height = flib_math.ceiled(resolution.height / divisor, 64) + 32
+  return resolution
 end
 
 --- @param self Overlay
@@ -149,14 +147,6 @@ local function update_overlay(self)
   self.last_position = position
 
   for _, area in pairs(areas) do
-    rendering.draw_rectangle({
-      color = { r = 0.1, a = 0.1 },
-      filled = true,
-      left_top = area.left_top,
-      right_bottom = area.right_bottom,
-      surface = self.player.surface_index,
-      time_to_live = 60,
-    })
     visualize_area(self, area)
   end
 

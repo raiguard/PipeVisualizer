@@ -4,7 +4,7 @@ local flib_queue = require("__flib__/queue")
 
 --- @alias RenderObjectID uint64
 
-local function init()
+local function reset()
   rendering.clear(script.mod_name)
   --- @type Queue<RenderObjectID>
   global.render_objects = flib_queue.new()
@@ -17,18 +17,19 @@ local function clear_sprite(id)
   end
   rendering.set_visible(id, false)
   flib_queue.push_back(global.render_objects, id)
+  log("Stored " .. id)
 end
 
 --- @param args LuaRendering.draw_sprite_param
 --- @return RenderObjectID
 local function draw_sprite(args)
-  local id = flib_queue.pop_front(global.render_objects)
-  if not id then
-    return rendering.draw_sprite(args)
-  end
+  --- @type RenderObjectID?
+  local id
+  repeat
+    id = flib_queue.pop_front(global.render_objects)
+  until not id or rendering.get_surface(id).index == args.surface and rendering.is_valid(id)
 
-  if rendering.get_surface(id) ~= args.surface then
-    flib_queue.push_back(global.render_objects, id)
+  if not id then
     return rendering.draw_sprite(args)
   end
 
@@ -237,7 +238,12 @@ function renderer.update_shape_color(iterator, entity_data)
   rendering.set_color(entity_data.shape, highest_id > 0 and iterator.systems[highest_id] or default_color)
 end
 
-renderer.on_init = init
-renderer.on_configuration_changed = init
+renderer.on_init = reset
+renderer.on_configuration_changed = reset
+renderer.on_nth_tick = {
+  [60] = function()
+    log("Render objects: " .. #rendering.get_all_ids("PipeVisualizer"))
+  end,
+}
 
 return renderer
