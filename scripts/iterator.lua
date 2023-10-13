@@ -12,11 +12,16 @@ local util = require("__PipeVisualizer__/scripts/util")
 --- @field entities table<UnitNumber, EntityData>
 --- @field in_overlay boolean
 --- @field in_queue table<UnitNumber, boolean>
+--- @field next_color_index integer
 --- @field player_index PlayerIndex
---- @field queue Queue<{entity: LuaEntity, update_neighbours: boolean}>
+--- @field queue Queue<ToIterateData>
 --- @field scheduled table<FluidSystemID, {entity: LuaEntity?, tick: uint}>
 --- @field systems table<FluidSystemID, Color>
---- @field next_color_index integer
+--- @field to_ignore table<UnitNumber, boolean>
+
+--- @class ToIterateData
+--- @field entity LuaEntity
+--- @field update_neighbours boolean?
 
 --- @param iterator Iterator
 --- @param entity LuaEntity
@@ -34,13 +39,19 @@ end
 --- @return LuaEntity? entity
 --- @return boolean? update_neighbours
 local function pop(iterator)
-  local data = flib_queue.pop_front(iterator.queue)
-  if not data or not data.entity.valid then
-    return
+  while true do
+    local data = flib_queue.pop_front(iterator.queue)
+    if not data then
+      return
+    end
+    local unit_number = data.entity.unit_number --[[@as UnitNumber]]
+    iterator.in_queue[unit_number] = nil
+    if iterator.to_ignore[unit_number] then
+      iterator.to_ignore[unit_number] = nil
+    else
+      return data.entity, data.update_neighbours
+    end
   end
-  local unit_number = data.entity.unit_number --[[@as UnitNumber]]
-  iterator.in_queue[unit_number] = nil
-  return data.entity, data.update_neighbours
 end
 
 --- @param entity LuaEntity
@@ -57,18 +68,26 @@ local function request(entity, player_index, in_overlay)
     --- @type Iterator
     iterator = {
       entities = {},
-      next_color_index = 0,
       in_overlay = in_overlay,
       in_queue = {},
+      next_color_index = 0,
       player_index = player_index,
       queue = flib_queue.new(),
       scheduled = {},
       systems = {},
+      to_ignore = {},
     }
   end
 
-  if entity_data.get(iterator, entity) then
+  local unit_number = entity.unit_number
+  if not unit_number then
     return false
+  end
+  if iterator.to_ignore[unit_number] then
+    iterator.to_ignore[unit_number] = nil
+  end
+  if iterator.entities[unit_number] or iterator.in_queue[unit_number] then
+    return iterator.in_overlay -- To handle entities that cross chunk boundaries
   end
 
   local fluidbox = entity.fluidbox
@@ -181,6 +200,13 @@ local function clear(player_index, entity)
   if not self then
     return
   end
+  local unit_number = entity.unit_number
+  if not unit_number then
+    return
+  end
+  if self.in_queue[unit_number] then
+    self.to_ignore[unit_number] = true
+  end
   local data = entity_data.get(self, entity)
   if not data then
     return
@@ -201,6 +227,9 @@ local function clear_all(player_index)
     renderer.clear(entity_data)
   end
   global.iterator[player_index] = nil
+  if not next(global.iterator) then
+    renderer.reset()
+  end
 end
 
 --- @param entity LuaEntity

@@ -167,6 +167,7 @@ end
 --- @param player LuaPlayer
 --- @return Overlay
 local function create_overlay(player)
+  iterator.clear_all(player.index)
   local background = rendering.draw_sprite({
     sprite = "pv-entity-box",
     tint = {},
@@ -184,7 +185,6 @@ local function create_overlay(player)
     player = player,
   }
   global.overlay[player.index] = self
-  iterator.clear_all(player.index)
   update_overlay(self)
   return self
 end
@@ -239,9 +239,8 @@ local function on_player_display_resolution_changed(e)
   if not self then
     return
   end
-  self.dimensions = get_dimensions(self.player)
-  self.last_position = nil
-  update_overlay(self)
+  destroy_overlay(self)
+  create_overlay(self.player)
 end
 
 --- @param e EventData.CustomInputEvent

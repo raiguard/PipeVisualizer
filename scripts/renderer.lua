@@ -240,10 +240,7 @@ end
 
 renderer.on_init = reset
 renderer.on_configuration_changed = reset
-renderer.on_nth_tick = {
-  [60] = function()
-    log("Render objects: " .. #rendering.get_all_ids("PipeVisualizer"))
-  end,
-}
+
+renderer.reset = reset
 
 return renderer
