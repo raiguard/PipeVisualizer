@@ -14,42 +14,36 @@ local util = require("__PipeVisualizer__/scripts/util")
 --- @field in_queue table<UnitNumber, boolean>
 --- @field next_color_index integer
 --- @field player_index PlayerIndex
---- @field queue Queue<ToIterateData>
+--- @field queue Queue<LuaEntity>
 --- @field scheduled table<FluidSystemID, {entity: LuaEntity?, tick: uint}>
 --- @field systems table<FluidSystemID, Color>
 --- @field to_ignore table<UnitNumber, boolean>
 
---- @class ToIterateData
---- @field entity LuaEntity
---- @field update_neighbours boolean?
-
 --- @param iterator Iterator
 --- @param entity LuaEntity
---- @param update_neighbours boolean?
-local function push(iterator, entity, update_neighbours)
+local function push(iterator, entity)
   if not entity.valid then
     return
   end
   local unit_number = entity.unit_number --[[@as UnitNumber]]
   iterator.in_queue[unit_number] = true
-  flib_queue.push_back(iterator.queue, { entity = entity, update_neighbours = update_neighbours })
+  flib_queue.push_back(iterator.queue, entity)
 end
 
 --- @param iterator Iterator
---- @return LuaEntity? entity
---- @return boolean? update_neighbours
+--- @return LuaEntity?
 local function pop(iterator)
   while true do
-    local data = flib_queue.pop_front(iterator.queue)
-    if not data then
+    local entity = flib_queue.pop_front(iterator.queue)
+    if not entity then
       return
     end
-    local unit_number = data.entity.unit_number --[[@as UnitNumber]]
+    local unit_number = entity.unit_number --[[@as UnitNumber]]
     iterator.in_queue[unit_number] = nil
     if iterator.to_ignore[unit_number] then
       iterator.to_ignore[unit_number] = nil
     else
-      return data.entity, data.update_neighbours
+      return entity
     end
   end
 end
@@ -133,7 +127,7 @@ end
 --- @param entities_per_tick integer
 local function iterate(iterator, entities_per_tick)
   for _ = 1, entities_per_tick do
-    local entity, update_neighbours = pop(iterator)
+    local entity = pop(iterator)
     if not entity then
       break
     end
@@ -146,7 +140,7 @@ local function iterate(iterator, entities_per_tick)
 
     renderer.draw(iterator, data)
 
-    if iterator.in_overlay and not update_neighbours or iterator.queue[entity.unit_number] then
+    if iterator.in_overlay or iterator.in_queue[entity.unit_number] then
       goto continue
     end
 
@@ -157,11 +151,7 @@ local function iterate(iterator, entities_per_tick)
           local owner = connection.target_owner
           if owner then
             local data = entity_data.get(iterator, owner)
-            if
-              update_neighbours
-              or not data
-              or data.connections[fluid_system_id] and not data.connection_objects[fluid_system_id]
-            then
+            if not data or data.connections[fluid_system_id] and not data.connection_objects[fluid_system_id] then
               local unit_number = owner.unit_number --[[@as UnitNumber]]
               if not iterator.in_queue[unit_number] then
                 push(iterator, owner)
@@ -259,32 +249,12 @@ local function request_or_clear(entity, player_index)
   end
 end
 
---- @param iterator Iterator
-local function check_scheduled(iterator)
-  for fluid_system_id, data in pairs(iterator.scheduled) do
-    if data.tick > game.tick then
-      goto continue
-    end
-
-    clear_system(iterator, fluid_system_id)
-
-    if data.entity and data.entity.valid then
-      request(data.entity, iterator.player_index, iterator.in_overlay)
-    end
-
-    iterator.scheduled[fluid_system_id] = nil
-
-    ::continue::
-  end
-end
-
 local function on_tick()
   if not global.iterator then
     return
   end
   local entities_per_tick = math.ceil(30 / table_size(global.iterator))
   for _, iterator in pairs(global.iterator) do
-    check_scheduled(iterator)
     iterate(iterator, entities_per_tick)
   end
 end
