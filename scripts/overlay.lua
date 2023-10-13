@@ -1,4 +1,5 @@
 local flib_bounding_box = require("__flib__/bounding-box")
+local flib_math = require("__flib__/math")
 local flib_position = require("__flib__/position")
 
 local iterator = require("__PipeVisualizer__/scripts/iterator")
@@ -35,49 +36,25 @@ local function get_areas(self, position)
 
   if delta.x < 0 then
     areas[#areas + 1] = {
-      left_top = {
-        x = position_x - radius_x,
-        y = position_y - radius_y,
-      },
-      right_bottom = {
-        x = last_position.x - radius_x,
-        y = position_y + radius_y,
-      },
+      left_top = { x = position_x - radius_x, y = position_y - radius_y },
+      right_bottom = { x = last_position.x - radius_x, y = position_y + radius_y },
     }
   elseif delta.x > 0 then
     areas[#areas + 1] = {
-      left_top = {
-        x = last_position.x + radius_x,
-        y = position_y - radius_y,
-      },
-      right_bottom = {
-        x = position_x + radius_x,
-        y = position_y + radius_y,
-      },
+      left_top = { x = last_position.x + radius_x, y = position_y - radius_y },
+      right_bottom = { x = position_x + radius_x, y = position_y + radius_y },
     }
   end
 
   if delta.y < 0 then
     areas[#areas + 1] = {
-      left_top = {
-        x = position_x - radius_x,
-        y = position_y - radius_y,
-      },
-      right_bottom = {
-        x = position_x + radius_x,
-        y = last_position.y - radius_y,
-      },
+      left_top = { x = position_x - radius_x - math.min(delta.x, 0), y = position_y - radius_y },
+      right_bottom = { x = position_x + radius_x - math.max(delta.x, 0), y = last_position.y - radius_y },
     }
   elseif delta.y > 0 then
     areas[#areas + 1] = {
-      left_top = {
-        x = position_x - radius_x,
-        y = last_position.y + radius_y,
-      },
-      right_bottom = {
-        x = position_x + radius_x,
-        y = position_y + radius_y,
-      },
+      left_top = { x = position_x - radius_x - math.min(delta.x, 0), y = last_position.y + radius_y },
+      right_bottom = { x = position_x + radius_x - math.max(delta.x, 0), y = position_y + radius_y },
     }
   end
 
@@ -87,10 +64,12 @@ end
 --- @param player LuaPlayer
 --- @return DisplayResolution
 local function get_dimensions(player)
+  -- return { width = 32, height = 32 }
+  -- return { width = 96, height = 96 }
   local resolution = player.display_resolution
   local divisor = math.max(resolution.width, resolution.height) / max_overlay_size
-  resolution.width = resolution.width / divisor
-  resolution.height = resolution.height / divisor
+  resolution.width = flib_math.ceiled(resolution.width / divisor, 64) + 32
+  resolution.height = flib_math.ceiled(resolution.height / divisor, 64) + 32
   return resolution
 end
 
@@ -128,7 +107,11 @@ end
 
 --- @param self Overlay
 local function update_overlay(self)
-  local position = flib_position.floor(self.player.position)
+  local pos = self.player.position
+  local position = {
+    x = flib_math.floored(pos.x, 32) + 16,
+    y = flib_math.floored(pos.y, 32) + 16,
+  }
   if self.last_position and flib_position.eq(position, self.last_position) then
     return
   end
@@ -141,6 +124,14 @@ local function update_overlay(self)
   self.last_position = position
 
   for _, area in pairs(areas) do
+    rendering.draw_rectangle({
+      color = { r = 0.1, a = 0.1 },
+      filled = true,
+      left_top = area.left_top,
+      right_bottom = area.right_bottom,
+      surface = self.player.surface_index,
+      time_to_live = 60,
+    })
     visualize_area(self, area)
   end
 end
