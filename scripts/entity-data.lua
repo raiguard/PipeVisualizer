@@ -55,8 +55,8 @@ function entity_data.create(iterator, entity)
 
   --- @type EntityData
   local data = {
-    connections = {},
     connection_objects = {},
+    connections = {},
     entity = entity,
     fluidbox = entity.fluidbox,
     unit_number = unit_number,

@@ -172,6 +172,23 @@ local function clear_system(iterator, fluid_system_id)
 end
 
 --- @param player_index PlayerIndex
+--- @param entity LuaEntity
+local function clear(player_index, entity)
+  if not global.iterator or not entity.valid then
+    return
+  end
+  local self = global.iterator[player_index]
+  if not self then
+    return
+  end
+  local data = entity_data.get(self, entity)
+  if not data then
+    return
+  end
+  entity_data.remove(self, data)
+end
+
+--- @param player_index PlayerIndex
 local function clear_all(player_index)
   if not global.iterator then
     return
@@ -274,6 +291,7 @@ iterator.events = {
   ["pv-visualize-selected"] = on_toggle_hover,
 }
 
+iterator.clear = clear
 iterator.clear_all = clear_all
 iterator.request = request
 

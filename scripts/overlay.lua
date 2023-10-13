@@ -1,6 +1,7 @@
 local flib_bounding_box = require("__flib__/bounding-box")
 local flib_math = require("__flib__/math")
 local flib_position = require("__flib__/position")
+local flib_table = require("__flib__/table")
 
 local iterator = require("__PipeVisualizer__/scripts/iterator")
 
@@ -10,9 +11,12 @@ local iterator = require("__PipeVisualizer__/scripts/iterator")
 local max_overlay_size = 220 + 5
 
 --- @alias UnitNumber uint
+--- @alias EntityChunkPositionLookup table<int, LuaEntity[]?>
 
 --- @class Overlay
 --- @field background RenderObjectID
+--- @field entities_x table<int, LuaEntity[]>
+--- @field entities_y table<int, LuaEntity[]>
 --- @field dimensions DisplayResolution
 --- @field last_position MapPosition?
 --- @field player LuaPlayer
@@ -64,13 +68,13 @@ end
 --- @param player LuaPlayer
 --- @return DisplayResolution
 local function get_dimensions(player)
-  -- return { width = 32, height = 32 }
+  return { width = 32, height = 32 }
   -- return { width = 96, height = 96 }
-  local resolution = player.display_resolution
-  local divisor = math.max(resolution.width, resolution.height) / max_overlay_size
-  resolution.width = flib_math.ceiled(resolution.width / divisor, 64) + 32
-  resolution.height = flib_math.ceiled(resolution.height / divisor, 64) + 32
-  return resolution
+  -- local resolution = player.display_resolution
+  -- local divisor = math.max(resolution.width, resolution.height) / max_overlay_size
+  -- resolution.width = flib_math.ceiled(resolution.width / divisor, 64) + 32
+  -- resolution.height = flib_math.ceiled(resolution.height / divisor, 64) + 32
+  -- return resolution
 end
 
 --- @param self Overlay
@@ -101,7 +105,28 @@ local function visualize_area(self, area)
     },
   })
   for _, entity in pairs(entities) do
-    iterator.request(entity, self.player.index, true)
+    if iterator.request(entity, self.player.index, true) then
+      local chunk_position = flib_position.to_chunk(entity.position)
+      local x_lookup = flib_table.get_or_insert(self.entities_x, chunk_position.x, {})
+      x_lookup[#x_lookup + 1] = entity
+      local y_lookup = flib_table.get_or_insert(self.entities_y, chunk_position.y, {})
+      y_lookup[#y_lookup + 1] = entity
+    end
+  end
+end
+
+--- @param self Overlay
+--- @param lookup EntityChunkPositionLookup
+--- @param min int
+--- @param max int
+local function remove_out_of_bounds(self, lookup, min, max)
+  for pos, entities in pairs(lookup) do
+    if pos < min or pos >= max then
+      for _, entity in pairs(entities) do
+        iterator.clear(self.player.index, entity)
+      end
+      lookup[pos] = nil
+    end
   end
 end
 
@@ -134,6 +159,19 @@ local function update_overlay(self)
     })
     visualize_area(self, area)
   end
+
+  remove_out_of_bounds(
+    self,
+    self.entities_x,
+    math.floor((position.x - (self.dimensions.width / 2)) / 32),
+    math.ceil((position.x + (self.dimensions.width / 2)) / 32)
+  )
+  remove_out_of_bounds(
+    self,
+    self.entities_y,
+    math.floor((position.y - (self.dimensions.height / 2)) / 32),
+    math.ceil((position.y + (self.dimensions.height / 2)) / 32)
+  )
 end
 
 --- @param player LuaPlayer
@@ -150,6 +188,8 @@ local function create_overlay(player)
   --- @type Overlay
   local self = {
     background = background,
+    entities_x = {},
+    entities_y = {},
     dimensions = get_dimensions(player),
     player = player,
   }
