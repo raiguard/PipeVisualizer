@@ -18,12 +18,6 @@ data:extend({
     action = "lua",
   },
   {
-    type = "custom-input",
-    name = "pv-toggle-hover",
-    key_sequence = "",
-    action = "lua",
-  },
-  {
     type = "shortcut",
     name = "pv-toggle-overlay",
     order = "c[toggles]-p[pv-toggle-overlay]",
