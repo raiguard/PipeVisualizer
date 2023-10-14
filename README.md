@@ -8,15 +8,7 @@ Download on the official Factorio [mod portal](https://mods.factorio.com/mod/Pip
 
 ## Features
 
-Toggle the pipe visualizer with `Control + P` or by using the shortcut button. Toggle between coloring by fluid and coloring by fluid system.
-
-![](screenshots/shortcuts-preview.png)
-
-![](screenshots/preview.png)
-
-Enable the hover-over visualizer to draw fluid systems when you hover over them:
-
-![](screenshots/hover-preview.png)
+Draw individual systems with `H`, or draw everything on screen with `Shift + H`. Press `Control + H` to toggle between color-by-fluid and color-by-system.
 
 ## Credits
 
