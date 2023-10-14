@@ -1,4 +1,5 @@
 local flib_migration = require("__flib__/migration")
+local mod_gui = require("__core__/lualib/mod-gui")
 
 local colors = require("__PipeVisualizer__/scripts/colors")
 local iterator = require("__PipeVisualizer__/scripts/iterator")
@@ -13,6 +14,14 @@ local version_migrations = {
     iterator.on_init()
     overlay.on_init()
     renderer.on_init()
+  end,
+  ["2.0.1"] = function()
+    for _, player in pairs(game.players) do
+      local window = mod_gui.get_frame_flow(player).pv_window
+      if window then
+        window.destroy()
+      end
+    end
   end,
 }
 
