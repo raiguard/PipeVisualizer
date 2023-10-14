@@ -87,6 +87,9 @@ local function request(entity, player_index, in_overlay)
   local should_iterate = false
   for fluidbox_index = 1, #fluidbox do
     local fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
+    if not fluid_system_id then
+      goto continue
+    end
     local system = iterator.systems[fluid_system_id]
     if system and not in_overlay then
       goto continue
