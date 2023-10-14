@@ -82,7 +82,7 @@ function renderer.draw(it, entity_data)
       x_scale = flib_bounding_box.width(box),
       y_scale = flib_bounding_box.height(box),
       render_layer = layers.entity,
-      target = entity_data.entity.position,
+      target = flib_bounding_box.center(box),
       surface = entity_data.entity.surface_index,
       players = { it.player_index },
     })

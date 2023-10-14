@@ -4,6 +4,7 @@ Date: ????
   Bugfixes:
     - Fixed a crash when visualizing a fluid wagon.
     - Fixed that the color mode GUI from 1.0.x would be left behind when migrating (#17).
+    - Fixed offshore pump boxes being off-center.
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.0
 Date: 2023-10-14
