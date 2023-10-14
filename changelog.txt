@@ -7,7 +7,8 @@ Date: ????
   Changes:
     - Changed color mode selection from a GUI toggle to a hotkey (default: Control + H).
     - Changed overlay hotkey from Control + P to Shift + H.
-    - Visualization is performed over multiple ticks, reducing multiplayer lag spikes.
+    - Removed hover-over visualizer in favor of the individual system visualization hotkey.
+    - Visualization is performed over multiple ticks.
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.6
 Date: 2023-03-26
