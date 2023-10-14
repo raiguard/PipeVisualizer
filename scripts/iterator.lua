@@ -2,7 +2,6 @@ local flib_queue = require("__flib__/queue")
 
 local entity_data = require("__PipeVisualizer__/scripts/entity-data")
 local renderer = require("__PipeVisualizer__/scripts/renderer")
-local util = require("__PipeVisualizer__/scripts/util")
 
 --- @alias FlowDirection "input"|"output"|"input-output"
 --- @alias FluidSystemID uint
@@ -86,7 +85,8 @@ local function request(entity, player_index, in_overlay)
 
   local fluidbox = entity.fluidbox
   local should_iterate = false
-  for fluidbox_index, fluid_system_id in util.iterate_fluid_systems(fluidbox) do
+  for fluidbox_index = 1, #fluidbox do
+    local fluid_system_id = fluidbox.get_fluid_system_id(fluidbox_index)
     local system = iterator.systems[fluid_system_id]
     if system and not in_overlay then
       goto continue
