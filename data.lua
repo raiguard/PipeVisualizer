@@ -49,9 +49,6 @@ data:extend({
     action = "lua",
     toggleable = true,
   },
-})
-
-data:extend({
   {
     type = "sprite",
     name = "pv-entity-box",
