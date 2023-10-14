@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.1
-Date: ????
+Date: 2023-10-14
   Bugfixes:
     - Fixed a crash when visualizing a fluid wagon.
     - Fixed that the color mode GUI from 1.0.x would be left behind when migrating (#17).
