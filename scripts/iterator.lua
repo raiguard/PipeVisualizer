@@ -288,13 +288,16 @@ local function on_toggle_hover(e)
   request_or_clear(entity, e.player_index)
 end
 
---- @class iterator
-local iterator = {}
-
-function iterator.on_init()
+local function reset()
   --- @type table<PlayerIndex, Iterator>
   global.iterator = {}
 end
+
+--- @class iterator
+local iterator = {}
+
+iterator.on_init = reset
+iterator.on_configuration_changed = reset
 
 iterator.events = {
   [defines.events.on_tick] = on_tick,

@@ -254,12 +254,18 @@ local function on_color_by_system_pressed(e)
   create_overlay(game.get_player(e.player_index) --[[@as LuaPlayer]])
 end
 
-local overlay = {}
-
-function overlay.on_init()
+local function reset()
   --- @type table<uint, Overlay>
   global.overlay = {}
+  for _, player in pairs(game.players) do
+    player.set_shortcut_toggled("pv-toggle-overlay", false)
+  end
 end
+
+local overlay = {}
+
+overlay.on_init = reset
+overlay.on_configuration_changed = reset
 
 overlay.events = {
   [defines.events.on_lua_shortcut] = on_toggle_overlay,
