@@ -168,9 +168,10 @@ end
 --- @return Overlay
 local function create_overlay(player)
   iterator.clear_all(player.index)
+  local opacity = player.mod_settings["pv-overlay-opacity"].value --[[@as double]]
   local background = rendering.draw_sprite({
-    sprite = "pv-entity-box",
-    tint = {},
+    sprite = "pv-overlay-box",
+    tint = { a = opacity },
     render_layer = "191",
     target = player.position,
     surface = player.surface,

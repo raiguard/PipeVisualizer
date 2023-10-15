@@ -60,6 +60,14 @@ data:extend({
   },
   {
     type = "sprite",
+    name = "pv-overlay-box",
+    filename = "__flib__/graphics/black.png",
+    size = 1,
+    scale = 32,
+    draw_as_glow = true,
+  },
+  {
+    type = "sprite",
     name = "pv-underground-connection",
     filename = "__PipeVisualizer__/graphics/underground-connection.png",
     size = 64,
