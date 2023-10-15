@@ -101,7 +101,7 @@ local function request(entity, player_index, in_overlay)
     end
 
     if not system then
-      local color = { r = 0.3, g = 0.3, b = 0.3 }
+      local color = { r = 0.4, g = 0.4, b = 0.4 }
       local order = flib_math.max_uint
       if global.color_by_system[self.player_index] then
         self.next_color_index = self.next_color_index + 1

@@ -67,7 +67,7 @@ local encoded_directions = {
 }
 
 --- @type Color
-local default_color = { r = 0.32, g = 0.32, b = 0.32, a = 0.4 }
+local default_color = { r = 0.4, g = 0.4, b = 0.4 }
 --- @type FluidSystemData
 local default_fluid_system = { color = default_color, order = flib_math.max_uint }
 

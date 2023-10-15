@@ -7,6 +7,7 @@ Date: ????
     - Box colors are more consistent, being decided by prototype order instead of fluid system ID.
   Bugfixes:
     - Fixed that underground connections would cause entity rendering to end prematurely.
+    - Fixed that the default pipe color was semitransparent.
 ---------------------------------------------------------------------------------------------------
 Version: 2.0.1
 Date: 2023-10-14
