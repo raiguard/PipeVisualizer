@@ -159,20 +159,17 @@ function renderer.draw(it, entity_data)
 
         local target_position = target_connection_data.position
         local distance = flib_position.distance(connection.position, target_connection_data.position)
-        if distance > 1 then
-          for i = 1, distance - 1 do
-            local target = flib_position.lerp(connection.position, target_position, i / distance)
-            objects[#objects + 1] = draw_sprite({
-              sprite = "pv-underground-connection",
-              tint = color,
-              render_layer = layers.underground,
-              orientation = direction / 8,
-              target = target,
-              surface = entity_data.entity.surface_index,
-              players = { it.player_index },
-            })
-          end
-          break
+        for i = 1, distance - 1 do
+          local target = flib_position.lerp(connection.position, target_position, i / distance)
+          objects[#objects + 1] = draw_sprite({
+            sprite = "pv-underground-connection",
+            tint = color,
+            render_layer = layers.underground,
+            orientation = direction / 8,
+            target = target,
+            surface = entity_data.entity.surface_index,
+            players = { it.player_index },
+          })
         end
       end
 
