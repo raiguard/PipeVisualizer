@@ -1,4 +1,5 @@
 local flib_bounding_box = require("__flib__/bounding-box")
+local flib_math = require("__flib__/math")
 local flib_position = require("__flib__/position")
 local flib_queue = require("__flib__/queue")
 
@@ -67,6 +68,8 @@ local encoded_directions = {
 
 --- @type Color
 local default_color = { r = 0.32, g = 0.32, b = 0.32, a = 0.4 }
+--- @type FluidSystemData
+local default_fluid_system = { color = default_color, order = flib_math.max_uint }
 
 local renderer = {}
 
@@ -99,18 +102,15 @@ function renderer.draw(it, entity_data)
       players = { it.player_index },
     })
   end
-  --- @type Color?
-  local shape_color
-  local highest_id = 0
+  local shape_fluid_system = default_fluid_system
   local encoded_connections = 0
   for fluid_system_id, connections in pairs(entity_data.connections) do
-    local color = it.systems[fluid_system_id]
-    if not color then
+    local fluid_system_data = it.systems[fluid_system_id]
+    if not fluid_system_data then
       goto continue
     end
-    if fluid_system_id > highest_id then
-      shape_color = color
-      highest_id = fluid_system_id
+    if fluid_system_data.order < shape_fluid_system.order then
+      shape_fluid_system = fluid_system_data
     end
     local objects = entity_data.connection_objects[fluid_system_id]
     if not objects then
@@ -133,7 +133,7 @@ function renderer.draw(it, entity_data)
         end
         objects[#objects + 1] = draw_sprite({
           sprite = sprite,
-          tint = color,
+          tint = fluid_system_data.color,
           render_layer = layers.arrow,
           orientation = direction / 8,
           target = connection.shape_position,
@@ -163,7 +163,7 @@ function renderer.draw(it, entity_data)
           local target = flib_position.lerp(connection.position, target_position, i / distance)
           objects[#objects + 1] = draw_sprite({
             sprite = "pv-underground-connection",
-            tint = color,
+            tint = fluid_system_data.color,
             render_layer = layers.underground,
             orientation = direction / 8,
             target = target,
@@ -178,11 +178,11 @@ function renderer.draw(it, entity_data)
 
     ::continue::
   end
-  if entity_data.shape and shape_color then
-    rendering.set_color(entity_data.shape, shape_color)
-  end
-  if encoded_connections > 0 then
-    rendering.set_sprite(entity_data.shape, "pv-pipe-connections-" .. encoded_connections)
+  if entity_data.shape then
+    rendering.set_color(entity_data.shape, shape_fluid_system.color)
+    if encoded_connections > 0 then
+      rendering.set_sprite(entity_data.shape, "pv-pipe-connections-" .. encoded_connections)
+    end
   end
 end
 
@@ -223,13 +223,15 @@ end
 --- @param iterator Iterator
 --- @param entity_data EntityData
 function renderer.update_shape_color(iterator, entity_data)
-  local highest_id = 0
+  --- @type FluidSystemData
+  local shape_fluid_system = { color = default_color, order = flib_math.max_uint }
   for fluid_system_id in pairs(entity_data.connection_objects) do
-    if fluid_system_id > highest_id then
-      highest_id = fluid_system_id
+    local fluid_system_data = iterator.systems[fluid_system_id]
+    if fluid_system_data and fluid_system_data.order < shape_fluid_system.order then
+      shape_fluid_system = fluid_system_data
     end
   end
-  rendering.set_color(entity_data.shape, highest_id > 0 and iterator.systems[highest_id] or default_color)
+  rendering.set_color(entity_data.shape, shape_fluid_system.color)
 end
 
 renderer.on_init = reset

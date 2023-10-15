@@ -1,3 +1,4 @@
+local flib_math = require("__flib__/math")
 local flib_queue = require("__flib__/queue")
 
 local entity_data = require("__PipeVisualizer__/scripts/entity-data")
@@ -15,8 +16,12 @@ local renderer = require("__PipeVisualizer__/scripts/renderer")
 --- @field player_index PlayerIndex
 --- @field queue Queue<LuaEntity>
 --- @field scheduled table<FluidSystemID, {entity: LuaEntity?, tick: uint}>
---- @field systems table<FluidSystemID, Color>
+--- @field systems table<FluidSystemID, FluidSystemData?>
 --- @field to_ignore table<UnitNumber, boolean>
+
+--- @class FluidSystemData
+--- @field color Color
+--- @field order uint
 
 --- @param iterator Iterator
 --- @param entity LuaEntity
@@ -56,10 +61,10 @@ local function request(entity, player_index, in_overlay)
     return false
   end
 
-  local iterator = global.iterator[player_index]
-  if not iterator then
+  local self = global.iterator[player_index]
+  if not self then
     --- @type Iterator
-    iterator = {
+    self = {
       entities = {},
       in_overlay = in_overlay,
       in_queue = {},
@@ -76,11 +81,11 @@ local function request(entity, player_index, in_overlay)
   if not unit_number then
     return false
   end
-  if iterator.to_ignore[unit_number] then
-    iterator.to_ignore[unit_number] = nil
+  if self.to_ignore[unit_number] then
+    self.to_ignore[unit_number] = nil
   end
-  if iterator.entities[unit_number] or iterator.in_queue[unit_number] then
-    return iterator.in_overlay -- To handle entities that cross chunk boundaries
+  if self.entities[unit_number] or self.in_queue[unit_number] then
+    return self.in_overlay -- To handle entities that cross chunk boundaries
   end
 
   local fluidbox = entity.fluidbox
@@ -90,27 +95,30 @@ local function request(entity, player_index, in_overlay)
     if not fluid_system_id then
       goto continue
     end
-    local system = iterator.systems[fluid_system_id]
+    local system = self.systems[fluid_system_id]
     if system and not in_overlay then
       goto continue
     end
 
     if not system then
       local color = { r = 0.3, g = 0.3, b = 0.3 }
-      if global.color_by_system[iterator.player_index] then
-        iterator.next_color_index = iterator.next_color_index + 1
-        local next_color = global.system_colors[iterator.next_color_index]
+      local order = flib_math.max_uint
+      if global.color_by_system[self.player_index] then
+        self.next_color_index = self.next_color_index + 1
+        local next_color = global.system_colors[self.next_color_index]
         if next_color then
           color = next_color
+          order = self.next_color_index
         end
       else
         local contents = fluidbox.get_fluid_system_contents(fluidbox_index)
         if contents and next(contents) then
           color = global.fluid_colors[next(contents)]
+          order = global.fluid_order[next(contents)]
         end
       end
 
-      iterator.systems[fluid_system_id] = color
+      self.systems[fluid_system_id] = { color = color, order = order }
     end
 
     should_iterate = true
@@ -119,8 +127,8 @@ local function request(entity, player_index, in_overlay)
   end
 
   if should_iterate then
-    push(iterator, entity)
-    global.iterator[player_index] = iterator
+    push(self, entity)
+    global.iterator[player_index] = self
   end
 
   return should_iterate
