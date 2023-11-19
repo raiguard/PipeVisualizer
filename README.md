@@ -14,6 +14,9 @@ Download on the official Factorio [mod portal](https://mods.factorio.com/mod/Pip
 
 Press `H` to draw the selected entity's fluid systems, or press `Shift + H` to draw all visible fluid systems. Press `Control + H` to toggle between color-by-fluid and color-by-system.
 
+## Mod developers
+This mod includes a remote interface that allows blacklisting entities from being drawn in the overlay.
+
 ## Credits
 
 Shortcut icons were sourced from [Font Awesome Free](https://fontawesome.com/search?m=free) under the [CC-BY-4.0 license](https://creativecommons.org/licenses/by/4.0/).
