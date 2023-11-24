@@ -1,6 +1,6 @@
 {
   "name": "PipeVisualizer",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "title": "Pipe Visualizer",
   "description": "Visualize the layout and contents of pipe networks. Press H to draw the selected entity's fluid systems, or press Shift + H to draw all visible fluid systems. Press Control + H to toggle between color-by-fluid and color-by-system.",
   "author": "raiguard",
