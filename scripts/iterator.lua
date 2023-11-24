@@ -14,7 +14,7 @@ local renderer = require("__PipeVisualizer__/scripts/renderer")
 --- @field in_queue table<UnitNumber, boolean>
 --- @field next_color_index integer
 --- @field player_index PlayerIndex
---- @field queue Queue<LuaEntity>
+--- @field queue Queue<ToIterateData>
 --- @field systems table<FluidSystemID, FluidSystemData?>
 --- @field to_ignore table<UnitNumber, boolean>
 
@@ -22,6 +22,10 @@ local renderer = require("__PipeVisualizer__/scripts/renderer")
 --- @field color Color
 --- @field from_hover boolean
 --- @field order uint
+
+--- @class ToIterateData
+--- @field entity LuaEntity
+--- @field unit_number UnitNumber
 
 --- @param iterator Iterator
 --- @param entity LuaEntity
@@ -31,23 +35,23 @@ local function push(iterator, entity)
   end
   local unit_number = entity.unit_number --[[@as UnitNumber]]
   iterator.in_queue[unit_number] = true
-  flib_queue.push_back(iterator.queue, entity)
+  flib_queue.push_back(iterator.queue, { entity = entity, unit_number = unit_number })
 end
 
 --- @param iterator Iterator
 --- @return LuaEntity?
 local function pop(iterator)
   while true do
-    local entity = flib_queue.pop_front(iterator.queue)
-    if not entity then
+    local to_iterate = flib_queue.pop_front(iterator.queue)
+    if not to_iterate then
       return
     end
-    local unit_number = entity.unit_number --[[@as UnitNumber]]
+    local unit_number = to_iterate.unit_number
     iterator.in_queue[unit_number] = nil
     if iterator.to_ignore[unit_number] then
       iterator.to_ignore[unit_number] = nil
-    else
-      return entity
+    elseif to_iterate.entity.valid then
+      return to_iterate.entity
     end
   end
 end
