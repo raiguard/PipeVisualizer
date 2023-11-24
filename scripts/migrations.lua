@@ -1,6 +1,8 @@
 local flib_migration = require("__flib__/migration")
 local mod_gui = require("__core__/lualib/mod-gui")
 
+local mouseover = require("__PipeVisualizer__/scripts/mouseover")
+
 local version_migrations = {
   ["2.0.0"] = function()
     global = {}
@@ -12,6 +14,9 @@ local version_migrations = {
         window.destroy()
       end
     end
+  end,
+  ["2.2.0"] = function()
+    mouseover.on_init()
   end,
 }
 

@@ -13,9 +13,47 @@ data:extend({
   },
   {
     type = "custom-input",
+    name = "pv-toggle-mouseover",
+    key_sequence = "ALT + H",
+    action = "lua",
+  },
+  {
+    type = "custom-input",
     name = "pv-color-by-fluid-system",
     key_sequence = "CONTROL + H",
     action = "lua",
+  },
+  {
+    type = "shortcut",
+    name = "pv-toggle-mouseover",
+    order = "c[toggles]-p[pv-toggle-mouseover]",
+    icon = {
+      filename = "__PipeVisualizer__/graphics/mouseover-dark-x32.png",
+      size = 32,
+      mipmap_count = 2,
+      flags = { "gui-icon" },
+    },
+    disabled_icon = {
+      filename = "__PipeVisualizer__/graphics/mouseover-light-x32.png",
+      size = 32,
+      mipmap_count = 2,
+      flags = { "gui-icon" },
+    },
+    small_icon = {
+      filename = "__PipeVisualizer__/graphics/mouseover-dark-x24.png",
+      size = 24,
+      mipmap_count = 2,
+      flags = { "gui-icon" },
+    },
+    disabled_small_icon = {
+      filename = "__PipeVisualizer__/graphics/mouseover-light-x24.png",
+      size = 24,
+      mipmap_count = 2,
+      flags = { "gui-icon" },
+    },
+    associated_control_input = "pv-toggle-mouseover",
+    action = "lua",
+    toggleable = true,
   },
   {
     type = "shortcut",
