@@ -314,7 +314,8 @@ local function on_tick()
   if not global.iterator then
     return
   end
-  local entities_per_tick = math.ceil(30 / table_size(global.iterator))
+  local entities_per_tick =
+    math.ceil(settings.global["pv-entities-per-tick"].value --[[@as int]] / table_size(global.iterator))
   for _, iterator in pairs(global.iterator) do
     iterate(iterator, entities_per_tick)
   end

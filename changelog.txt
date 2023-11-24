@@ -2,6 +2,7 @@
 Version: 2.2.0
 Date: ????
   Features:
+    - Added a map setting to adjust the number of entities visualized per tick. (#24)
     - Re-added mouse-over visualization, toggled with Alt+H or the shortcut button. (#20)
       - Pressing H while hovering will make that entity's fluid systems persist.
   Bugfixes:
