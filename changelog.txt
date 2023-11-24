@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.2.0
-Date: ????
+Date: 2023-11-24
   Features:
     - Added a map setting to adjust the number of entities visualized per tick. (#24)
     - Re-added mouse-over visualization, toggled with Alt+H or the shortcut button. (#20)
