@@ -10,7 +10,7 @@
   "dependencies": [ "base >= 1.1.86", "flib >= 0.13.0" ],
   "package": {
     "git_publish_branch": "main",
-    "ignore": [ "imgui.ini", "screenshots/*", "stylua.toml" ],
+    "ignore": [ "imgui.ini", "screenshots/*" ],
     "scripts": { "prepublish": "factorio-crowdin-sync" },
     "sync_portal_details": true
   }
