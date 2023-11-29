@@ -79,16 +79,21 @@ function renderer.draw(it, entity_data)
   local is_complex_type = not pipe_types[entity_data.entity.type]
   if is_complex_type then
     local box = flib_bounding_box.resize(entity_data.entity.selection_box, -0.1)
-    entity_data.shape = draw_sprite({
-      sprite = "pv-entity-box",
-      tint = default_color,
-      x_scale = flib_bounding_box.width(box),
-      y_scale = flib_bounding_box.height(box),
-      render_layer = layers.entity,
-      target = flib_bounding_box.center(box),
-      surface = entity_data.entity.surface_index,
-      players = { it.player_index },
-    })
+    local playerSettings = settings.get_player_settings(it.player_index)
+    local showEntOverlay = playerSettings["pv-highlight-entities-overlay"].value
+    local showEntMouseOver = playerSettings["pv-highlight-entities-mouse-hover"].value
+    if (not it.from_hover and showEntOverlay) or (it.from_hover and showEntMouseOver) then
+      entity_data.shape = draw_sprite({
+        sprite = "pv-entity-box",
+        tint = default_color,
+        x_scale = flib_bounding_box.width(box),
+        y_scale = flib_bounding_box.height(box),
+        render_layer = layers.entity,
+        target = flib_bounding_box.center(box),
+        surface = entity_data.entity.surface_index,
+        players = { it.player_index },
+      })
+    end
   else
     local box = flib_bounding_box.ceil(entity_data.entity.selection_box)
     entity_data.shape = draw_sprite({
@@ -188,14 +193,16 @@ end
 
 --- @param entity_data EntityData
 function renderer.clear(entity_data)
-  clear_sprite(entity_data.shape)
-  entity_data.shape = nil
-  for _, objects in pairs(entity_data.connection_objects) do
-    for _, id in pairs(objects) do
-      clear_sprite(id)
+  if entity_data.shape then
+    clear_sprite(entity_data.shape)
+    entity_data.shape = nil
+    for _, objects in pairs(entity_data.connection_objects) do
+      for _, id in pairs(objects) do
+        clear_sprite(id)
+      end
     end
+    entity_data.connection_objects = {}
   end
-  entity_data.connection_objects = {}
 end
 
 --- @param iterator Iterator
@@ -211,11 +218,13 @@ function renderer.clear_system(iterator, entity_data, fluid_system_id)
     entity_data.connection_objects[fluid_system_id] = nil
   end
   local should_remove = not next(entity_data.connection_objects)
-  if should_remove then
-    clear_sprite(entity_data.shape)
-    entity_data.shape = nil
-  else
-    renderer.update_shape_color(iterator, entity_data)
+  if entity_data.shape then
+    if should_remove then
+        clear_sprite(entity_data.shape)
+        entity_data.shape = nil
+    else
+      renderer.update_shape_color(iterator, entity_data)
+    end
   end
   return should_remove
 end
