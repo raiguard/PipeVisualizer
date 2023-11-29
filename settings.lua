@@ -14,4 +14,16 @@ data:extend({
     default_value = 30,
     minimum_value = 1,
   },
+  {
+    type = "bool-setting",
+    name = "pv-highlight-entities-overlay",
+    setting_type = "runtime-per-user",
+    default_value = true,
+  },
+  {
+    type = "bool-setting",
+    name = "pv-highlight-entities-mouse-hover",
+    setting_type = "runtime-per-user",
+    default_value = true,
+  },
 })
