@@ -82,7 +82,10 @@ function renderer.draw(it, entity_data)
     local playerSettings = settings.get_player_settings(it.player_index)
     local showEntOverlay = playerSettings["pv-highlight-entities-overlay"].value
     local showEntMouseOver = playerSettings["pv-highlight-entities-mouse-hover"].value
-    if (not it.from_hover and showEntOverlay) or (it.from_hover and showEntMouseOver) then
+    local mouseover_enabled = global.mouseover_enabled[it.player_index]
+   
+    if (not mouseover_enabled and showEntOverlay) or (mouseover_enabled and showEntMouseOver) then
+   
       entity_data.shape = draw_sprite({
         sprite = "pv-entity-box",
         tint = default_color,
