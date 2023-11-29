@@ -72,7 +72,6 @@ local function request(entity, player_index, in_overlay, from_hover)
     self = {
       entities = {},
       in_overlay = in_overlay,
-      from_hover = from_hover,
       in_queue = {},
       next_color_index = 0,
       player_index = player_index,
