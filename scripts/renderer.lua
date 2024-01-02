@@ -27,7 +27,7 @@ local function draw_sprite(args)
   local id
   repeat
     id = flib_queue.pop_front(global.render_objects)
-  until not id or rendering.get_surface(id).index == args.surface and rendering.is_valid(id)
+  until not id or rendering.is_valid(id) and rendering.get_surface(id).index == args.surface
 
   if not id then
     return rendering.draw_sprite(args)
