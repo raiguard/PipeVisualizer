@@ -3,6 +3,8 @@ Version: 2.2.1
 Date: ????
   Bugfixes:
     - Fixed a crash when a cached render object is destroyed. (#28)
+  Compatibility:
+    - Added a remote interface to blacklist entities from being visualized. (#26)
 ---------------------------------------------------------------------------------------------------
 Version: 2.2.0
 Date: 2023-11-24

@@ -66,6 +66,10 @@ local function request(entity, player_index, in_overlay, from_hover)
     return false
   end
 
+  if global.blacklist[entity.name] then
+    return false
+  end
+
   local self = global.iterator[player_index]
   if not self then
     --- @type Iterator
@@ -167,7 +171,7 @@ local function iterate(iterator, entities_per_tick)
       if iterator.systems[fluid_system_id] then
         for _, connection in pairs(connections) do
           local owner = connection.target_owner
-          if owner then
+          if owner and not global.blacklist[owner.name] then
             local data = entity_data.get(iterator, owner)
             if not data or data.connections[fluid_system_id] and not data.connection_objects[fluid_system_id] then
               local unit_number = owner.unit_number --[[@as UnitNumber]]
