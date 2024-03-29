@@ -14,14 +14,18 @@ local renderer = require("__PipeVisualizer__/scripts/renderer")
 --- @field in_queue table<UnitNumber, boolean>
 --- @field next_color_index integer
 --- @field player_index PlayerIndex
---- @field queue Queue<LuaEntity>
---- @field scheduled table<FluidSystemID, {entity: LuaEntity?, tick: uint}>
+--- @field queue Queue<ToIterateData>
 --- @field systems table<FluidSystemID, FluidSystemData?>
 --- @field to_ignore table<UnitNumber, boolean>
 
 --- @class FluidSystemData
 --- @field color Color
+--- @field from_hover boolean
 --- @field order uint
+
+--- @class ToIterateData
+--- @field entity LuaEntity
+--- @field unit_number UnitNumber
 
 --- @param iterator Iterator
 --- @param entity LuaEntity
@@ -31,23 +35,23 @@ local function push(iterator, entity)
   end
   local unit_number = entity.unit_number --[[@as UnitNumber]]
   iterator.in_queue[unit_number] = true
-  flib_queue.push_back(iterator.queue, entity)
+  flib_queue.push_back(iterator.queue, { entity = entity, unit_number = unit_number })
 end
 
 --- @param iterator Iterator
 --- @return LuaEntity?
 local function pop(iterator)
   while true do
-    local entity = flib_queue.pop_front(iterator.queue)
-    if not entity then
+    local to_iterate = flib_queue.pop_front(iterator.queue)
+    if not to_iterate then
       return
     end
-    local unit_number = entity.unit_number --[[@as UnitNumber]]
+    local unit_number = to_iterate.unit_number
     iterator.in_queue[unit_number] = nil
     if iterator.to_ignore[unit_number] then
       iterator.to_ignore[unit_number] = nil
-    else
-      return entity
+    elseif to_iterate.entity.valid then
+      return to_iterate.entity
     end
   end
 end
@@ -55,8 +59,9 @@ end
 --- @param entity LuaEntity
 --- @param player_index PlayerIndex
 --- @param in_overlay boolean
+--- @param from_hover boolean?
 --- @return boolean accepted
-local function request(entity, player_index, in_overlay)
+local function request(entity, player_index, in_overlay, from_hover)
   if not global.iterator then
     return false
   end
@@ -92,6 +97,8 @@ local function request(entity, player_index, in_overlay)
     return self.in_overlay -- To handle entities that cross chunk boundaries
   end
 
+  from_hover = from_hover or false
+
   local fluidbox = entity.fluidbox
   local should_iterate = false
   for fluidbox_index = 1, #fluidbox do
@@ -122,7 +129,7 @@ local function request(entity, player_index, in_overlay)
         end
       end
 
-      self.systems[fluid_system_id] = { color = color, order = order }
+      self.systems[fluid_system_id] = { color = color, from_hover = from_hover, order = order }
     end
 
     should_iterate = true
@@ -237,19 +244,62 @@ local function clear_all(player_index)
   end
 end
 
---- @param entity LuaEntity
 --- @param player_index PlayerIndex
-local function request_or_clear(entity, player_index)
+local function clear_hovered(player_index)
   if not global.iterator then
     return
   end
-  local iterator = global.iterator[player_index]
-  if not iterator then
+  local it = global.iterator[player_index]
+  if not it then
+    return
+  end
+  for system_id, system_data in pairs(it.systems) do
+    if system_data.from_hover then
+      clear_system(it, system_id)
+    end
+  end
+  if not next(it.systems) then
+    global.iterator[player_index] = nil
+    if not next(global.iterator) then
+      renderer.reset()
+    end
+  end
+end
+
+--- @param player_index PlayerIndex
+--- @return Iterator?
+local function get(player_index)
+  if not global.iterator then
+    return
+  end
+  return global.iterator[player_index]
+end
+
+--- @param entity LuaEntity
+--- @param player_index PlayerIndex
+local function request_or_clear(entity, player_index)
+  local it = get(player_index)
+  if not it then
     request(entity, player_index, false)
     return
   end
-  if iterator.in_overlay then
+  if it.in_overlay then
     return
+  end
+  -- If this entity was being hovered, change its systems to persistent instead of removing the visualization.
+  local entity_data = entity_data.get(it, entity)
+  if entity_data then
+    local did_change
+    for fluid_system_id in pairs(entity_data.connections) do
+      local system_data = it.systems[fluid_system_id]
+      if system_data and system_data.from_hover then
+        system_data.from_hover = false
+        did_change = true
+      end
+    end
+    if did_change then
+      return
+    end
   end
   if request(entity, player_index, false) then
     return
@@ -258,8 +308,8 @@ local function request_or_clear(entity, player_index)
   for fluidbox_index = 1, #fluidbox do
     --- @cast fluidbox_index uint
     local id = fluidbox.get_fluid_system_id(fluidbox_index)
-    if id and iterator.systems[id] then
-      clear_system(iterator, id)
+    if id and it.systems[id] then
+      clear_system(it, id)
     end
   end
 end
@@ -268,7 +318,8 @@ local function on_tick()
   if not global.iterator then
     return
   end
-  local entities_per_tick = math.ceil(30 / table_size(global.iterator))
+  local entities_per_tick =
+    math.ceil(settings.global["pv-entities-per-tick"].value --[[@as int]] / table_size(global.iterator))
   for _, iterator in pairs(global.iterator) do
     iterate(iterator, entities_per_tick)
   end
@@ -310,6 +361,8 @@ iterator.events = {
 
 iterator.clear = clear
 iterator.clear_all = clear_all
+iterator.clear_hovered = clear_hovered
+iterator.get = get
 iterator.request = request
 
 return iterator

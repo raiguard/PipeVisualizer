@@ -27,7 +27,7 @@ local function draw_sprite(args)
   local id
   repeat
     id = flib_queue.pop_front(global.render_objects)
-  until not id or rendering.get_surface(id).index == args.surface and rendering.is_valid(id)
+  until not id or rendering.is_valid(id) and rendering.get_surface(id).index == args.surface
 
   if not id then
     return rendering.draw_sprite(args)
@@ -69,7 +69,7 @@ local encoded_directions = {
 --- @type Color
 local default_color = { r = 0.4, g = 0.4, b = 0.4 }
 --- @type FluidSystemData
-local default_fluid_system = { color = default_color, order = flib_math.max_uint }
+local default_fluid_system = { color = default_color, from_hover = false, order = flib_math.max_uint }
 
 local renderer = {}
 
