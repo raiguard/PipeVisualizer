@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.2.1
-Date: ????
+Date: 2024-03-29
   Bugfixes:
     - Fixed a crash when a cached render object is destroyed. (#28)
   Compatibility:
