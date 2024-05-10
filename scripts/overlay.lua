@@ -138,6 +138,18 @@ local function update_overlay(self)
   if self.last_position and flib_position.eq(position, self.last_position) then
     return
   end
+  if not rendering.is_valid(self.background) then
+    self.background = rendering.draw_sprite({
+      sprite = "pv-overlay-box",
+      tint = {
+        a = self.player.mod_settings["pv-overlay-opacity"].value --[[@as double]],
+      },
+      render_layer = "191",
+      target = self.player.position,
+      surface = self.player.surface,
+      players = { self.player },
+    })
+  end
   rendering.set_target(self.background, position)
   rendering.set_x_scale(self.background, self.dimensions.width)
   rendering.set_y_scale(self.background, self.dimensions.height)
