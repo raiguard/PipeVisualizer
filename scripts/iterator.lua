@@ -1,8 +1,8 @@
-local flib_math = require("__flib__/math")
-local flib_queue = require("__flib__/queue")
+local flib_math = require("__flib__.math")
+local flib_queue = require("__flib__.queue")
 
-local entity_data = require("__PipeVisualizer__/scripts/entity-data")
-local renderer = require("__PipeVisualizer__/scripts/renderer")
+local entity_data = require("scripts.entity-data")
+local renderer = require("scripts.renderer")
 
 --- @alias FlowDirection "input"|"output"|"input-output"
 --- @alias FluidSystemID uint

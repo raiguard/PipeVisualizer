@@ -1,13 +1,13 @@
-local handler = require("__core__/lualib/event_handler")
+local handler = require("__core__.lualib.event_handler")
 
 handler.add_libraries({
-  require("__PipeVisualizer__/scripts/migrations"),
+  require("scripts.migrations"),
 
-  require("__PipeVisualizer__/scripts/blacklist"),
-  require("__PipeVisualizer__/scripts/colors"),
-  require("__PipeVisualizer__/scripts/iterator"),
-  require("__PipeVisualizer__/scripts/mouseover"),
-  require("__PipeVisualizer__/scripts/order"),
-  require("__PipeVisualizer__/scripts/overlay"),
-  require("__PipeVisualizer__/scripts/renderer"),
+  require("scripts.blacklist"),
+  require("scripts.colors"),
+  require("scripts.iterator"),
+  require("scripts.mouseover"),
+  require("scripts.order"),
+  require("scripts.overlay"),
+  require("scripts.renderer"),
 })

@@ -1,7 +1,7 @@
-local flib_bounding_box = require("__flib__/bounding-box")
-local flib_math = require("__flib__/math")
-local flib_position = require("__flib__/position")
-local flib_queue = require("__flib__/queue")
+local flib_bounding_box = require("__flib__.bounding-box")
+local flib_math = require("__flib__.math")
+local flib_position = require("__flib__.position")
+local flib_queue = require("__flib__.queue")
 
 --- @alias RenderObjectID uint64
 

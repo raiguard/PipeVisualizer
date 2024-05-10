@@ -1,5 +1,5 @@
-local entity_data = require("__PipeVisualizer__/scripts/entity-data")
-local iterator = require("__PipeVisualizer__/scripts/iterator")
+local entity_data = require("scripts.entity-data")
+local iterator = require("scripts.iterator")
 
 --- @param e EventData.CustomInputEvent|EventData.on_lua_shortcut
 local function on_toggle_mouseover(e)

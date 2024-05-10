@@ -1,4 +1,4 @@
-local renderer = require("__PipeVisualizer__/scripts/renderer")
+local renderer = require("scripts.renderer")
 
 --- @class EntityData
 --- @field connections table<FluidSystemID, PipeConnectionExt[]>

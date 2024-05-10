@@ -1,9 +1,9 @@
-local flib_bounding_box = require("__flib__/bounding-box")
-local flib_math = require("__flib__/math")
-local flib_position = require("__flib__/position")
-local flib_table = require("__flib__/table")
+local flib_bounding_box = require("__flib__.bounding-box")
+local flib_math = require("__flib__.math")
+local flib_position = require("__flib__.position")
+local flib_table = require("__flib__.table")
 
-local iterator = require("__PipeVisualizer__/scripts/iterator")
+local iterator = require("scripts.iterator")
 
 -- In the source code, 200 is defined as the maximum viewable distance, but in reality it's around 220
 -- Map editor is 3x that, but we will ignore that for now
