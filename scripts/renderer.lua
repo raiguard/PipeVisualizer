@@ -224,7 +224,7 @@ end
 --- @param entity_data EntityData
 function renderer.update_shape_color(iterator, entity_data)
   --- @type FluidSystemData
-  local shape_fluid_system = { color = default_color, order = flib_math.max_uint }
+  local shape_fluid_system = { color = default_color, from_hover = false, order = flib_math.max_uint }
   for fluid_system_id in pairs(entity_data.connection_objects) do
     local fluid_system_data = iterator.systems[fluid_system_id]
     if fluid_system_data and fluid_system_data.order < shape_fluid_system.order then
